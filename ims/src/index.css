@@ -1,0 +1,23 @@
+@import "tailwindcss";
+@plugin "daisyui";
+
+@theme {
+  --color-header-bg: #111827;              /* nav background */
+  --color-header-text: #FFFFFF;            /* nav text */
+  --color-header-text-active: #2CA5BC;     /* nav text highlight/active */
+
+  --color-page-bg: #FFFFFF;                /* general page background */
+  --color-heading-text: #0D0D11;           /* headings and titles */
+  --color-blackbg: #0D0D11;                   /* main text color */
+  
+  --color-content-bg: #2C2C2C;             /* main content background */
+  --color-overlay-bg: rgba(44, 44, 44, 0.8); /* overlay (e.g., modals) */
+  --color-table-row-alt: #0D0D11;          /* alternating table row bg */
+}
+
+/* Global page gradient background (overrides white page bg) */
+body, #root {
+  background: linear-gradient(135deg, #f6f8ff 0%, #f3eefc 50%, #fff7fb 100%);
+  background-attachment: fixed;
+  color: var(--color-blackbg);
+}
