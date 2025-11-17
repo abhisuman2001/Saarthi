@@ -43,7 +43,9 @@
 
 
   // CORS (allow all for now)
-  app.use(cors({ origin: "*" }));
+  app.use(cors({ origin: "http://localhost:5173",
+  credentials: true
+   }));
   // app.use(cors());
 
   // Routes

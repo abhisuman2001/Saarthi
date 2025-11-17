@@ -18,19 +18,23 @@ exports.addPatient = async (req, res) => {
     if (existingUser) {
       return res.status(400).json({ error: "Patient with this contact already exists" });
     }
-
+    
+    // Create patient details entry
+    const patient = await Patient.create({
+      name,
+      contactNumber, // optional duplicate for easier querying
+      doctorId, //Abhishek add this line
+    });
+    
     // Create user with role 'patient'
     const user = await User.create({
       contactNumber,
       password,
       role: "patient",
+      patientId: patient._id,
+      doctorId
     });
-
-    // Create patient details entry
-    const patient = await Patient.create({
-      name,
-      contactNumber, // optional duplicate for easier querying
-    });
+    
 
     // Update user with patientId
     user.patientId = patient._id;

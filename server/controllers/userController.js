@@ -33,42 +33,42 @@ exports.loginUser = async (req, res) => {
 };
 
 
-exports.registerUser = async (req, res) => {
-  try {
-    const { contactNumber, password } = req.body;
+// exports.registerUser = async (req, res) => {
+//   try {
+//     const { contactNumber, password } = req.body;
 
-    if (!contactNumber || !password) {
-      return res.status(400).json({ error: "Contact number and password are required" });
-    }
+//     if (!contactNumber || !password) {
+//       return res.status(400).json({ error: "Contact number and password are required" });
+//     }
 
-    // Check if user already exists
-    const existingUser = await User.findOne({ contactNumber });
-    if (existingUser) {
-      return res.status(400).json({ error: "User with this contact already exists" });
-    }
+//     // Check if user already exists
+//     const existingUser = await User.findOne({ contactNumber });
+//     if (existingUser) {
+//       return res.status(400).json({ error: "User with this contact already exists" });
+//     }
 
-    // Create User with role 'doctor'
-    const user = await User.create({
-      contactNumber,
-      password, // plain password, no encryption
-      role: "doctor",
-    });
+//     // Create User with role 'doctor'
+//     const user = await User.create({
+//       contactNumber,
+//       password, // plain password, no encryption
+//       role: "doctor",
+//     });
 
-    // Create Doctor document linked to this user
-    const doctor = await Doctor.create({
+//     // Create Doctor document linked to this user
+//     const doctor = await Doctor.create({
       
-    });
+//     });
 
-    // Update User with doctorId
-    user.doctorId = doctor._id;
-    await user.save();
+//     // Update User with doctorId
+//     user.doctorId = doctor._id;
+//     await user.save();
 
-    res.status(201).json({ docid: doctor._id });
-  } catch (err) {
-    console.error("Register user error:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-};
+//     res.status(201).json({ docid: doctor._id });
+//   } catch (err) {
+//     console.error("Register user error:", err);
+//     res.status(500).json({ error: "Server error" });
+//   }
+// };
 
 
 

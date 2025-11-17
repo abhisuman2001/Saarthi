@@ -175,7 +175,7 @@ export const uploadFile = async (
     formData.append("file", file);
     formData.append("field", field); // still needed in body
 
-    const backend = import.meta.env.VITE_BACKEND ;
+    const backend = import.meta.env.VITE_BACKEND || "http://localhost:5000";
 
     const res = await fetch(`${backend}/api/patientinfo/uploadPatientFile/${patid}`, {
       method: "POST",
@@ -193,7 +193,7 @@ export const uploadFile = async (
 };
 export const getPatientsByDoctor = async (docid: string): Promise<any[]> => {
   try {
-    const backend = import.meta.env.VITE_BACKEND;
+    const backend = import.meta.env.VITE_BACKEND || "http://localhost:5000";
     const res = await fetch(`${backend}/api/patientinfo/getPatientsByDoctor/${docid}`);
     if (!res.ok) throw new Error("Failed to fetch patients");
     return res.json();
