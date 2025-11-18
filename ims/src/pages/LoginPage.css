@@ -161,13 +161,13 @@ body {
 /* New split layout styles */
 .split-container{
   width:100%;
-  max-width:980px;
-  height:640px;
+  max-width:760px;
+  height:520px;
   display:flex;
   box-shadow: 0 30px 80px rgba(15,23,42,0.12), 0 8px 30px rgba(79,70,229,0.06);
   border-radius:14px;
   overflow:hidden;
-  margin-top:64px; /* push below fixed navbar */
+  margin-top:24px; /* reduce top spacing */
   position:relative;
   z-index:3; /* ensure content sits above background overlays */
   transition: transform .18s ease, box-shadow .18s ease;
@@ -180,7 +180,7 @@ body {
   }
 }
 .left-panel{ flex:1; background: transparent; display:flex; align-items:center; }
-.left-inner{ padding:36px 36px; max-width:420px; margin:0 auto; width:100%; }
+.left-inner{ padding:24px 24px; max-width:360px; margin:0 auto; width:100%; }
 .brand{ display:flex; align-items:center; gap:12px; margin-bottom:18px }
 .brand-logo{ width:36px; height:36px; border-radius:8px; background:linear-gradient(135deg,#0ea5e9,#6366f1) }
 .brand-name{ font-weight:700; color:#0f1724 }

@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { loginUser, changeUserPassword } from "../api/User";
 import { requestFirebaseNotificationPermission } from "../fb.ts";
 import "./LoginPage.css";
+import Layout from "../components/Layout";
+import DecorativeBlobs from "../components/DecorativeBlobs";
 
 type LoginResponse = {
   role: "doctor" | "patient";
@@ -99,26 +101,15 @@ export default function LoginPage() {
     }
   };
 
-  // Ensure the page background is black (force override in case CSS is overridden elsewhere)
   useEffect(() => {
-    const prevHtmlBg = document.documentElement.style.backgroundColor;
-    const prevBodyBg = document.body.style.backgroundColor;
-    const prevBodyColor = document.body.style.color;
-
-    document.documentElement.style.backgroundColor = "#000";
-    document.body.style.backgroundColor = "#000";
-    document.body.style.color = "#e6e6e6";
-
-    return () => {
-      document.documentElement.style.backgroundColor = prevHtmlBg;
-      document.body.style.backgroundColor = prevBodyBg;
-      document.body.style.color = prevBodyColor;
-    };
+    // keep for analytics or other side-effects in future
   }, []);
 
   return (
-    <div className="login-page">
-      <div className="split-container">
+    <Layout>
+      <div className="login-page relative" style={{ marginTop: '-40px' }}>
+        <DecorativeBlobs />
+        <div className="split-container">
         <div className="left-panel">
           <div className="left-inner">
             <h2 className="text-2xl font-semibold text-center mb-6 text-gray-800">Doctor / Patient Login</h2>
@@ -216,15 +207,10 @@ export default function LoginPage() {
         <div className="right-panel" role="presentation">
           <div className="right-illus" />
         </div>
-      </div>
-
-      <footer className="page-footer">
-        <div className="footer-inner">
-          <span className="footer-title">ORTHO SAARTHI</span>
-          <span className="footer-copy">Smart Assistant for Appliance Reminders and Treatment History Interface</span>
-          <p className="opacity-60 mt-2">© {new Date().getFullYear()} ORTHO SAARTHI. All rights reserved.</p>
         </div>
-      </footer>
-    </div>
+
+        
+      </div>
+    </Layout>
   );
 }

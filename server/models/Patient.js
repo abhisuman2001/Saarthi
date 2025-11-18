@@ -4,7 +4,12 @@ const adherenceHistorySchema = new mongoose.Schema({
   date: { type: Date, default: Date.now },
   adherence: { type: Boolean, required: true },
   notes: { type: String, default: "" },
-  useful: { type: Boolean, default: null }
+  useful: { type: Boolean, default: null },
+  duration: { type: String, default: null },
+  applianceType: { type: String, default: null },
+  photoUrl: { type: String, default: null },
+  score: { type: Number, default: null },
+  reason: { type: String, default: null }
 });
 
 //add started treatment date and next appointment date

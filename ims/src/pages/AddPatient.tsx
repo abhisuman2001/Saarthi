@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { addPatient } from "../api/Patientinfo";
+import Layout from "../components/Layout";
 
 export default function AddPatient() {
   const location = useLocation();
@@ -54,14 +55,10 @@ export default function AddPatient() {
   };
 
   return (
-    <div>
-    <div className="min-h-screen flex flex-col bg-gradient-to-r from-[#8EC5FC] to-[#E0C3FC]">
-      {/* Centered Form Card */}
+    <Layout>
       <div className="flex-1 flex justify-center items-center px-2 py-10">
-        <div className="w-full max-w-md bg-white bg-opacity-90 backdrop-blur-md p-10 rounded-3xl shadow-2xl">
-          <h2 className="text-2xl font-semibold text-center mb-6 text-gray-800">
-            Add New Patient
-          </h2>
+        <div className="w-full max-w-md bg-white p-8 rounded-lg shadow-sm">
+          <h2 className="text-2xl font-semibold text-center mb-6 text-gray-800">Add New Patient</h2>
 
           {error && <p className="text-red-500 mb-4 text-center">{error}</p>}
 
@@ -72,7 +69,7 @@ export default function AddPatient() {
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none text-black"
+                className="w-full border border-gray-200 px-3 py-2 rounded-md focus:ring-2 focus:ring-cyan-400 focus:outline-none text-black"
                 required
               />
             </div>
@@ -83,7 +80,7 @@ export default function AddPatient() {
                 type="tel"
                 value={contactNumber}
                 onChange={(e) => setContactNumber(e.target.value)}
-                className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none text-black"
+                className="w-full border border-gray-200 px-3 py-2 rounded-md focus:ring-2 focus:ring-cyan-400 focus:outline-none text-black"
                 required
               />
             </div>
@@ -94,7 +91,7 @@ export default function AddPatient() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none text-black"
+                className="w-full border border-gray-200 px-3 py-2 rounded-md focus:ring-2 focus:ring-cyan-400 focus:outline-none text-black"
                 required
               />
             </div>
@@ -105,7 +102,7 @@ export default function AddPatient() {
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none text-black"
+                className="w-full border border-gray-200 px-3 py-2 rounded-md focus:ring-2 focus:ring-cyan-400 focus:outline-none text-black"
                 required
               />
             </div>
@@ -113,28 +110,13 @@ export default function AddPatient() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-2 rounded-lg shadow-md hover:scale-105 transition-transform"
+              className="w-full bg-cyan-600 hover:bg-cyan-700 text-white px-6 py-2 rounded-md shadow-sm"
             >
               {loading ? "Adding..." : "Add Patient"}
             </button>
           </form>
         </div>
       </div>
-
-      {/* Footer */}
-      <footer className="bg-gray-900 text-gray-300 py-6 text-center text-sm">
-        <p className="font-semibold text-white">ORTHO SAARTHI</p>
-        <p className="opacity-75">
-          Smart Assistant for Appliance Reminders and Treatment History Interface
-        </p>
-      </footer>
-    </div>
-     <footer className="bg-gray-900 text-gray-300 py-6 text-center text-sm">
-        <p className="font-semibold text-white">ORTHO SAARTHI</p>
-        <p className="opacity-75">
-          Smart Assistant for Appliance Reminders and Treatment History Interface
-        </p>
-      </footer>
-      </div>
+    </Layout>
   );
 }

@@ -1,4 +1,4 @@
-// fetchPatientInfo.ts
+// api/Patientinfo.ts
 export interface PatientInfo {
   name: string;
   adherence: {
@@ -10,7 +10,6 @@ export interface PatientInfo {
 
 export const fetchPatientInfo = async (patid: string): Promise<PatientInfo | null> => {
   try {
-    // ✅ FIX: Define backend with fallback
     const backend = import.meta.env.VITE_BACKEND || "http://localhost:5000";
     const response = await fetch(
       `${backend}/api/patientinfo/getPatientAdherence/${patid}`,
@@ -28,7 +27,6 @@ export const fetchPatientInfo = async (patid: string): Promise<PatientInfo | nul
 
     const data = await response.json();
 
-    // Normalize response keys
     return {
       name: data.name,
       adherence: data.adherence ?? { last30days: 0, yes: 0 },
@@ -40,7 +38,6 @@ export const fetchPatientInfo = async (patid: string): Promise<PatientInfo | nul
   }
 };
 
-// api/Patientinfo.ts
 export interface AdherenceEntryPayload {
   adherence: boolean;
   date?: string;
@@ -80,7 +77,6 @@ export const addAdherenceEntry = async (
   }
 };
 
-// --------------------- Types ---------------------
 type Field = {
   name: string;
   value: string;
@@ -124,7 +120,6 @@ type PatientData = {
   history?: HistoryEntry[];
 };
 
-//console log
 export const PatientInfo = async (patid: string): Promise<PatientData | null> => {
   try {
     const backend = import.meta.env.VITE_BACKEND || "http://localhost:5000";
@@ -138,16 +133,12 @@ export const PatientInfo = async (patid: string): Promise<PatientData | null> =>
   }
 };
 
-
-
-// ../api/Patientinfo.ts
-
 export const updatePatientInfo = async (
   patid: string,
   updatedFields: Partial<PatientDetails>
 ): Promise<boolean> => {
   try {
-        const backend = import.meta.env.VITE_BACKEND || "http://localhost:5000"; // <-- backend port
+    const backend = import.meta.env.VITE_BACKEND || "http://localhost:5000"; 
     const res = await fetch(`${backend}/api/patientinfo/updateInfo/${patid}`, {
       method: "PATCH",
       headers: {
@@ -167,7 +158,6 @@ export const updatePatientInfo = async (
     return false;
   }
 };
-
 
 
 export const uploadFile = async (

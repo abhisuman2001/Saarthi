@@ -3,6 +3,8 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ClipboardList, LogOut } from "lucide-react";
 import type { ReactNode } from "react";
 import Logo from "../logo.png";
+import { useEffect, useState } from "react";
+import { getDoctorById } from "../api/User";
 
 interface NavItem {
   name: string;
@@ -17,6 +19,8 @@ function Navbar() {
   const searchParams = new URLSearchParams(location.search);
   const patid = searchParams.get("patid");
   const docid = searchParams.get("docid");
+  const [doctorName, setDoctorName] = useState<string | null>(null);
+  const [doctorAvatar, setDoctorAvatar] = useState<string | null>(null);
 
   let navItems: NavItem[] = [];
 
@@ -53,14 +57,50 @@ function Navbar() {
     }
   };
 
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      if (!docid) {
+        setDoctorName(null);
+        setDoctorAvatar(null);
+        return;
+      }
+
+      try {
+        const d = await getDoctorById(docid);
+        if (!mounted) return;
+        if (d?.name) setDoctorName(d.name);
+        if (d?.avatar) setDoctorAvatar(d.avatar);
+      } catch (err) {
+        console.error("Failed loading doctor in Navbar", err);
+      }
+    };
+    load();
+    return () => {
+      mounted = false;
+    };
+  }, [docid]);
+
   return (
-    <nav className="fixed top-0 left-0 right-0 bg-white/30 backdrop-blur-md z-50 border-b border-gray-800/20">
+    <nav className="fixed top-0 left-0 right-0 bg-cyan-100/10 backdrop-blur-md z-50 border-b border-gray-800/20">
       <div className="max-w-7xl mx-auto flex justify-between items-center px-4 py-4">
         {/* Logo */}
         <div className="cursor-pointer flex items-center space-x-3" onClick={handleLogoClick}>
           <img src={Logo} alt="Logo" className="h-10 w-auto" />
-          <span className="text-gray-800 font-medium text-lg tracking-wide">ORTHO SAARTHI</span>
+          <span className="text-gray-800 font-medium text-lg tracking-wide">ORTHOSAARTHI</span>
         </div>
+
+        {/* Inline greeting for doctors */}
+        {docid && doctorName && (
+          <div className="hidden md:flex items-center ml-4 text-sm text-gray-700 gap-2">
+            {doctorAvatar ? (
+              <img src={doctorAvatar} alt="avatar" className="h-8 w-8 rounded-full object-cover" />
+            ) : (
+              <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600">{doctorName.charAt(0).toUpperCase()}</div>
+            )}
+            <div className="leading-none">Hi <span className="font-medium">{doctorName.split(" ")[0]}</span></div>
+          </div>
+        )}
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center gap-6">

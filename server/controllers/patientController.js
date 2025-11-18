@@ -2,6 +2,7 @@ const Doctor = require("../models/Doctor");
 const Patient = require("../models/Patient");
 const mongoose = require("mongoose");
 const User = require("../models/User"); 
+const { sendSMS } = require("../sms"); // <--- 1. Import the SMS function
 
 
 
@@ -44,6 +45,22 @@ exports.addPatient = async (req, res) => {
     await Doctor.findByIdAndUpdate(doctorId, { $push: { patients: patient._id } });
     console.log("Linked patient to doctor");
     console.log({ user, patient });
+    
+    // 2. SEND SMS LOGIC HERE
+    try {
+      // Twilio requires the country code (e.g., +91 for India).
+      // If your input is just '9876543210', you must add the prefix.
+      const formattedNumber = contactNumber.startsWith('+') 
+        ? contactNumber 
+        : `+91${contactNumber}`; // Change +91 to your local code if different
+
+      await sendSMS(formattedNumber, "Welcome to OrthoSaarthi");
+      console.log(`SMS sent to ${formattedNumber}`);
+    } catch (smsError) {
+      // We catch the error so the patient creation doesn't fail if SMS fails
+      console.error("Failed to send SMS:", smsError.message);
+    }
+  
     // Return new patient ID
     res.status(201).json(patient);
   } catch (err) {
@@ -101,7 +118,7 @@ exports.getPatientAdherence = async (req, res) => {
 exports.addAdherenceEntry = async (req, res) => {
   try {
     const { patid } = req.params;
-    const { adherence, notes, useful } = req.body;
+    const { adherence, notes, useful, duration, applianceType, photoUrl, score, reason, date } = req.body;
 
     if (!patid) {
       return res.status(400).json({ error: "Patient ID is required" });
@@ -130,16 +147,23 @@ exports.addAdherenceEntry = async (req, res) => {
       patient.adherence.yes += 1;
     }
 
-    // Add new adherence entry
-    patient.adherenceHistory.push({
+
+    // Add new adherence entry (store optional fields if provided)
+    const entry = {
       adherence,
       notes: notes || "",
       useful: useful !== undefined ? useful : null,
-      date: new Date()
-    });
+      duration: duration || undefined,
+      applianceType: applianceType || undefined,
+      photoUrl: photoUrl || undefined,
+      score: typeof score === 'number' ? score : undefined,
+      reason: reason || undefined,
+      date: date ? new Date(date) : new Date(),
+    };
+    patient.adherenceHistory.push(entry);
 
-    // Mark today's submission
-    patient.answerdToday = true;
+    // Mark today's submission flag consistently
+    patient.answeredToday = true;
 
     await patient.save();
 

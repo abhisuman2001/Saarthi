@@ -5,6 +5,7 @@
 
   const PatientinfoRoutes = require("./routes/Patientinfo");
   const UserRoutes = require("./routes/User");
+  const DoctorRoutes = require("./routes/Doctor");
   const app = express();
   app.use(express.json());
 
@@ -51,6 +52,7 @@
   // Routes
   app.use("/api/patientinfo", PatientinfoRoutes);
   app.use("/api/user", UserRoutes);
+  app.use("/api/doctor", DoctorRoutes);
   app.get("/", (req, res) => res.send("Server running ✅"));
 
   const PORT = process.env.PORT || 5000;

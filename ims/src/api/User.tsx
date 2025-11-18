@@ -84,3 +84,54 @@ export async function changeUserPassword({
     message: data.message || "Password changed successfully",
   };
 }
+
+export async function getDoctorById(docid: string): Promise<{ _id?: string; name?: string; patientsCount?: number; avatar?: string; createdAt?: string } | null> {
+  try {
+    const backend = import.meta.env.VITE_BACKEND || "http://localhost:5000";
+    const res = await fetch(`${backend}/api/doctor/${docid}`);
+    if (!res.ok) {
+      console.error("Failed to fetch doctor", await res.text());
+      return null;
+    }
+    return res.json();
+  } catch (err) {
+    console.error(err);
+    return null;
+  }
+}
+
+export async function updateDoctor(docid: string, updates: { [k: string]: any }): Promise<any> {
+  try {
+    const backend = import.meta.env.VITE_BACKEND || "http://localhost:5000";
+    const res = await fetch(`${backend}/api/doctor/${docid}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updates),
+    });
+    if (!res.ok) throw new Error("Failed to update doctor");
+    return res.json();
+  } catch (err) {
+    console.error(err);
+    throw err;
+  }
+}
+
+export async function uploadDoctorAvatar(docid: string, file: File): Promise<{ url?: string } | null> {
+  try {
+    const backend = import.meta.env.VITE_BACKEND || "http://localhost:5000";
+    const fd = new FormData();
+    fd.append("file", file);
+    const res = await fetch(`${backend}/api/doctor/${docid}/avatar`, {
+      method: "POST",
+      body: fd,
+    });
+    if (!res.ok) {
+      console.error("Failed to upload avatar", await res.text());
+      return null;
+    }
+    return res.json();
+  } catch (err) {
+    console.error(err);
+    return null;
+  }
+}
