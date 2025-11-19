@@ -43,11 +43,15 @@
   .catch(err => console.error("MongoDB error:", err));
 
 
-  // CORS (allow all for now)
-  app.use(cors({ origin: "http://localhost:5173", "https://hfq82rbx-5173.inc1.devtunnels.ms", "https://ortho-saarthi.vercel.app",
-  credentials: true
-   }));
-  // app.use(cors());
+
+  // CORS: allow deployed frontend and localhost for dev
+  app.use(cors({
+    origin: [
+      "http://localhost:5173",
+      "https://orthosaarthi.com"
+    ],
+    credentials: true
+  }));
 
   // Routes
   app.use("/api/patientinfo", PatientinfoRoutes);
