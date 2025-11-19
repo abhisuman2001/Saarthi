@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import DecorativeBlobs from "../components/DecorativeBlobs";
 import logo from "../logo.png";
+import InteractiveMockup from "../components/InteractiveMockup";
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -26,24 +27,14 @@ export default function LandingPage() {
               <button onClick={() => navigate('/login')} className="px-5 py-3 bg-cyan-600 text-white rounded-md font-medium hover:bg-cyan-700">Login</button>
             </div>
 
-            <div className="mt-8 text-sm text-gray-500">Designed for clinics and patients — quick setup, daily adherence tracking, and insightful history.</div>
-          </div>
-
-          {/* Right image / mockup */}
-          <div className="px-6 md:px-0 flex justify-center">
-            <div className="max-w-lg w-full bg-gradient-to-br from-cyan-100 to-white rounded-2xl shadow-lg p-6">
-              <img src={logo} alt="mockup" className="w-full h-48 object-contain opacity-90" />
-              <div className="mt-4 bg-white rounded-lg p-4">
-                <div className="h-2 bg-gray-200 rounded mb-3" />
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="h-16 bg-cyan-50 rounded" />
-                  <div className="h-16 bg-cyan-50 rounded" />
-                  <div className="h-16 bg-cyan-50 rounded" />
-                </div>
-                <div className="mt-3 h-24 bg-gray-50 rounded" />
-              </div>
+            <div className="mt-8 text-sm text-gray-500">Designed for clinics and patients  Quick setup, daily adherence tracking, and insightful history.</div>
+            <div className="mt-4">
+              <a href="/orthosaarthi" target="_blank" rel="noopener noreferrer" className="text-cyan-600 hover:underline font-medium">know more about orthosaarthi</a>
             </div>
           </div>
+
+          {/* Right image / interactive mockup */}
+          <InteractiveMockup />
         </div>
       </div>
     </Layout>

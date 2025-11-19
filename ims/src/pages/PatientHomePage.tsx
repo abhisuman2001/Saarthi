@@ -413,9 +413,7 @@ export default function PatientHomepage() {
             {/* Questionnaire container */}
             <div className="p-6 rounded-lg bg-white shadow-sm space-y-4 mt-4">
               <h2 className="font-semibold text-gray-800">Daily Appliance Check — Did you wear your appliance today?</h2>
-        {/* Header */}
-        <h1 className="text-3xl font-bold text-center text-gray-800">Patient Portal</h1>
-        <p className="text-xl font-medium text-center text-black">Welcome back, {data.name} 👋</p>
+
 
               {/* Already submitted banner */}
               {alreadySubmitted && (
@@ -513,6 +511,14 @@ export default function PatientHomepage() {
                   <label className="block font-medium text-gray-800">Any feedback?</label>
                   <textarea value={notes} disabled={alreadySubmitted} onChange={(e)=>setNotes(e.target.value)} placeholder="Optional feedback" className="w-full border border-gray-300 rounded-lg p-2" rows={2} />
                 </div>
+                                <div>
+                  <label className="block font-medium text-gray-800">Was this reminder message useful?</label>
+                  <div className="flex space-x-4 mt-2">
+                    <button disabled={alreadySubmitted} className={`flex-1 px-4 py-2 rounded-lg font-medium ${useful===true? 'bg-green-400 text-white':'bg-gray-300 text-gray-800'} ${alreadySubmitted ? 'opacity-60 cursor-not-allowed' : ''}`} onClick={()=>setUseful(true)}>Yes</button>
+                    <button disabled={alreadySubmitted} className={`flex-1 px-4 py-2 rounded-lg font-medium ${useful===false? 'bg-red-400 text-white':'bg-gray-300 text-gray-800'} ${alreadySubmitted ? 'opacity-60 cursor-not-allowed' : ''}`} onClick={()=>setUseful(false)}>No</button>
+                  </div>
+                </div>
+
               </div>
             )}
 

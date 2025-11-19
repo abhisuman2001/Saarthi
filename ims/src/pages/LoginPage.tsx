@@ -152,7 +152,7 @@ export default function LoginPage() {
             {/* ----- CHANGE PASSWORD FORM ----- */}
             {showChangePassword && (
               <form onSubmit={handleChangePassword} className="mt-4 space-y-4 bg-gray-100 p-4 rounded-lg shadow-md">
-                <h3 className="text-lg font-semibold text-gray-700 text-center">Change Password</h3>
+                <h3 className="text-lg font-semibold text-gray-700 text-center">Change  Password</h3>
 
                 <div>
                   <label className="block mb-1 text-sm font-medium text-gray-700">Contact Number</label>
@@ -194,7 +194,7 @@ export default function LoginPage() {
             {/* ----- TOGGLE BUTTON ----- */}
             <div className="text-center mt-4">
               <button type="button" onClick={() => setShowChangePassword(!showChangePassword)} className="ghost-link">
-                {showChangePassword ? "Back to Login" : "Change Password"}
+                {showChangePassword ? "Back to Login" : "Forgot Password? Click here"}
               </button>
             </div>
 

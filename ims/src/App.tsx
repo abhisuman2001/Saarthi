@@ -8,6 +8,7 @@ import AddPatient from './pages/AddPatient';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage'; // If you have a RegisterPage
 import LandingPage from './pages/LandingPage';
+import Saarthi from './pages/Saarthi';
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
           <Route path="patient/add" element={<AddPatient />} />
           <Route path="login" element={<LoginPage />} />
           <Route path="register" element={<RegisterPage />} />
+          <Route path="orthosaarthi" element={<Saarthi />} />
           <Route path="*" element={<LandingPage />} />
         </Routes>
       </div>
