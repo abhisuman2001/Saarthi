@@ -44,12 +44,16 @@
 
 
 
-  // CORS: allow deployed frontend and localhost for dev
+
+  // DEBUG: Allow all origins for troubleshooting CORS and log the request origin
+  app.use((req, res, next) => {
+    console.log('CORS request from:', req.headers.origin);
+    next();
+  });
   app.use(cors({
-    origin: [
-      "http://localhost:5173",
-      "https://orthosaarthi.com"
-    ],
+    origin: (origin, callback) => {
+      callback(null, true); // Allow all origins
+    },
     credentials: true
   }));
 
