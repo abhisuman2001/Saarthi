@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useLocation } from "react-router-dom";
 import { PatientInfo, updatePatientInfo, uploadFile } from "../api/Patientinfo";
 import Layout from "../components/Layout";
@@ -18,7 +18,7 @@ type AdherenceEntry = {
 
 export interface PatientDetails {
   name: string | null;
-  age: number | null;
+  dob: string | null;
   gender: string | null;
   contactNumber: string | null;
   address: string | null;
@@ -61,6 +61,31 @@ export default function PatientProfile() {
   const [uploadStatus, setUploadStatus] = useState<{ [key: string]: string }>({});
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [otherAppliance, setOtherAppliance] = useState<string>("");
+
+  const applianceOptions: string[] = useMemo(
+    () => [
+      "Upper Plate",
+      "Lower Plate",
+      "Functional Appliance (Activator,Bionator,Twinblock)",
+      "Elastics",
+      "Headgear",
+      "Facemask",
+      "Retainer",
+      "Aligner",
+      "Others",
+    ],
+    []
+  );
+
+  useEffect(() => {
+    const val = formValues.typeOfAppliance as string | undefined;
+    if (val && !applianceOptions.includes(val)) {
+      setOtherAppliance(val);
+    } else {
+      setOtherAppliance("");
+    }
+  }, [formValues.typeOfAppliance, applianceOptions]);
 
   const imageFields: { label: string; key: keyof PatientDetails }[] = [
     { label: "Study Model", key: "studyModelUrl" },
@@ -75,7 +100,7 @@ export default function PatientProfile() {
 
   const editableFields: { label: string; key: keyof PatientDetails; type?: string }[] = [
     { label: "Name", key: "name" },
-    { label: "Age", key: "age" },
+    { label: "DOB", key: "dob", type: "date" },
     { label: "Gender", key: "gender" },
     { label: "Contact", key: "contactNumber" },
     { label: "Address", key: "address" },
@@ -225,12 +250,50 @@ export default function PatientProfile() {
                         <div className="font-semibold text-gray-700">{label}</div>
                         {isEditing ? (
                           <div className="mt-2 flex items-center gap-2">
-                            <input
-                              type={type || 'text'}
-                              value={type === 'date' ? (value ? new Date(value).toISOString().substring(0,10) : '') : value}
-                              onChange={(e) => handleInputChange(key, e.target.value)}
-                              className="w-full sm:w-72 border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-cyan-300 text-black"
-                            />
+                            {key === 'typeOfAppliance' ? (
+                              <div className="w-full sm:w-72">
+                                <select
+                                  value={applianceOptions.includes(String(formValues.typeOfAppliance ?? "")) ? String(formValues.typeOfAppliance ?? "") : (formValues.typeOfAppliance ? 'Others' : '')}
+                                  onChange={(e) => {
+                                    const v = e.target.value;
+                                    if (v === 'Others') {
+                                      setFormValues((prev) => ({ ...prev, typeOfAppliance: otherAppliance || '' }));
+                                    } else {
+                                      setFormValues((prev) => ({ ...prev, typeOfAppliance: v }));
+                                      setOtherAppliance("");
+                                    }
+                                  }}
+                                  className="w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-cyan-300 text-black"
+                                >
+                                  <option value="">Select appliance</option>
+                                  {applianceOptions.map((opt) => (
+                                    <option key={opt} value={opt}>{opt}</option>
+                                  ))}
+                                </select>
+
+                                {/* If user chooses Others, show editable input */}
+                                {(!applianceOptions.includes(String(formValues.typeOfAppliance ?? "")) || String(formValues.typeOfAppliance) === 'Others') && (
+                                  <input
+                                    type="text"
+                                    placeholder="Describe other appliance"
+                                    value={otherAppliance}
+                                    onChange={(e) => {
+                                      const v = e.target.value;
+                                      setOtherAppliance(v);
+                                      setFormValues((prev) => ({ ...prev, typeOfAppliance: v }));
+                                    }}
+                                    className="mt-2 w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-cyan-300 text-black"
+                                  />
+                                )}
+                              </div>
+                            ) : (
+                              <input
+                                type={type || 'text'}
+                                value={type === 'date' ? (value ? new Date(value).toISOString().substring(0,10) : '') : value}
+                                onChange={(e) => handleInputChange(key, e.target.value)}
+                                className="w-full sm:w-72 border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-cyan-300 text-black"
+                              />
+                            )}
                           </div>
                         ) : (
                           <div className="mt-1 text-gray-800">{type === 'date' ? (value ? new Date(value).toLocaleDateString() : 'Not provided') : (value || 'Not provided')}</div>

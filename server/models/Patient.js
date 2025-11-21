@@ -18,6 +18,7 @@ const patientSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, default: null },
     age: { type: Number, default: null },
+    dob: { type: Date, default: null },
     doctorId: { 
       type: mongoose.Schema.Types.ObjectId, 
       ref: "Doctor",

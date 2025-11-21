@@ -61,7 +61,6 @@ export default function InteractiveMockup() {
               >
                 Learn more
               </a>
-              <button className="px-3 py-1 border border-gray-200 rounded text-sm whitespace-nowrap">Preview</button>
             </div>
           </div>
         </div>

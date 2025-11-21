@@ -17,13 +17,13 @@ export default function PatientHomepage() {
   };
   type PatientDetails = {
     typeOfAppliance?: string;
-    age?: number | string;
+    dob?: string;
     gender?: string;
     nextAppointment?: string;
     startDate?: string;
     provisionalDiagnosis?: string;
     finalDiagnosis?: string;
-    adherenceHistory?: Array<{ _id?: string; adherence?: boolean; date?: string }>;
+    adherenceHistory?: Array<{ _id?: string; adherence?: boolean; date?: string; score?: number }>;
   };
   const [data, setData] = useState<LocalPatientData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -60,7 +60,18 @@ export default function PatientHomepage() {
     ">18 hrs",
   ];
 
-  const applianceTypes = ["Aligner", "Retainer", "Brace", "Headgear", "Other"];
+  const applianceTypes = [      "Upper Plate",
+      "Lower Plate",
+      "Functional Appliance (Activator,Bionator,Twinblock)",
+      "Elastics",
+      "Headgear",
+      "Facemask",
+      "Retainer",
+      "Aligner",
+      "Others",
+    ];
+
+    const [otherAppliance, setOtherAppliance] = useState<string>("");
 
   const loadPatientInfo = useCallback(async () => {
     try {
@@ -87,6 +98,27 @@ export default function PatientHomepage() {
       if (!merged.answeredToday && submittedWithin24(merged.details as PatientDetails | undefined)) {
         merged.answeredToday = true;
       }
+      // If there's a recent adherence entry, derive today's score from it so
+      // the UI shows the correct percent after a refresh (don't rely only on answeredToday boolean).
+      const recentHistory = (merged.details as PatientDetails | undefined)?.adherenceHistory;
+      if (recentHistory && recentHistory.length > 0) {
+        const last = recentHistory[recentHistory.length - 1];
+        if (last && last.date) {
+          const diff = Date.now() - new Date(last.date).getTime();
+          if (diff < 24 * 60 * 60 * 1000) {
+            // mark answeredToday and set submissionResult based on stored score (fallback to adherence boolean)
+            merged.answeredToday = true;
+            const score = typeof last.score === 'number' ? last.score : (last.adherence ? 100 : 0);
+            const message = score === 100
+              ? "Great — you reported today!"
+              : "Thanks for reporting — don't be discouraged. Please try again tomorrow and keep going!";
+            setSubmissionResult({ score, message });
+          } else {
+            setSubmissionResult(null);
+          }
+        }
+      }
+
       setData(merged);
     } catch (err) {
       console.error("Failed to load patient info:", err);
@@ -280,6 +312,10 @@ export default function PatientHomepage() {
         alert("Please select appliance type");
         return;
       }
+      if (applianceType === 'Others' && !otherAppliance) {
+        alert("Please describe the other appliance");
+        return;
+      }
     }
 
     if (answer === "no") {
@@ -310,7 +346,7 @@ export default function PatientHomepage() {
         useful: useful ?? undefined,
         notes: notes || undefined,
         duration: answer === "yes" ? duration : undefined,
-        applianceType: answer === "yes" ? applianceType : undefined,
+        applianceType: answer === "yes" ? (applianceType === 'Others' ? otherAppliance : applianceType) : undefined,
         photoUrl: photoUrl || undefined,
         score,
         reason: answer === "no" ? selectedReason : undefined,
@@ -346,6 +382,7 @@ export default function PatientHomepage() {
         setUseful(null);
         setDuration("");
         setApplianceType("");
+        setOtherAppliance("");
         setPhotoFile(null);
         setPhotoPreview(null);
         setCapturedPreview(null);
@@ -387,7 +424,7 @@ export default function PatientHomepage() {
                 </div>
               </div>
               <div className="mt-3 grid grid-cols-2 gap-2 text-sm text-gray-700">
-                <div><span className="font-medium">Age:</span> {details?.age ? String(details.age) : '—'}</div>
+                <div><span className="font-medium">DOB:</span> {details?.dob ? new Date(details.dob).toLocaleDateString() : '—'}</div>
                 <div><span className="font-medium">Gender:</span> {details?.gender || '—'}</div>
                 <div><span className="font-medium">Next appt:</span> {details?.nextAppointment ? new Date(details.nextAppointment).toLocaleDateString() : '—'}</div>
                 <div><span className="font-medium">Start date:</span> {details?.startDate ? new Date(details.startDate).toLocaleDateString() : '—'}</div>
@@ -451,10 +488,21 @@ export default function PatientHomepage() {
 
                 <div>
                   <label className="block font-medium text-gray-800">Appliance type</label>
-                  <select value={applianceType} onChange={(e)=>setApplianceType(e.target.value)} disabled={alreadySubmitted} className="w-full border border-gray-300 rounded-lg p-2 text-gray-800 focus:ring-2 focus:ring-blue-400 focus:outline-none">
+                  <select value={applianceType} onChange={(e)=>{ setApplianceType(e.target.value); if(e.target.value !== 'Others') setOtherAppliance(''); }} disabled={alreadySubmitted} className="w-full border border-gray-300 rounded-lg p-2 text-gray-800 focus:ring-2 focus:ring-blue-400 focus:outline-none">
                     <option value="">Select appliance</option>
                     {applianceTypes.map(a=> <option key={a} value={a}>{a}</option>)}
                   </select>
+
+                  {applianceType === 'Others' && (
+                    <input
+                      type="text"
+                      placeholder="Describe other appliance"
+                      value={otherAppliance}
+                      onChange={(e)=>setOtherAppliance(e.target.value)}
+                      disabled={alreadySubmitted}
+                      className="mt-2 w-full border border-gray-300 rounded-lg p-2"
+                    />
+                  )}
                 </div>
 
                 <div>

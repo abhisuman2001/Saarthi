@@ -1,8 +1,10 @@
+const { sendSMS } = require("../sms");
+const { sendWhatsAppMessage } = require("../whatsappClient");
 const Doctor = require("../models/Doctor");
 const Patient = require("../models/Patient");
 const mongoose = require("mongoose");
 const User = require("../models/User"); 
-const { sendSMS } = require("../sms"); // <--- 1. Import the SMS function
+// ...existing code...
 
 
 

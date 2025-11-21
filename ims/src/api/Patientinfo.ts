@@ -91,6 +91,7 @@ type HistoryEntry = {
 type PatientDetails = {
   name: string | null;
   age: number | null;
+  dob?: string | null;
   gender: string | null;
   contactNumber: string | null;
   address: string | null;
