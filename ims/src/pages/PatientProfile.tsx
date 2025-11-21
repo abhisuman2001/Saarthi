@@ -134,6 +134,7 @@ export default function PatientProfile() {
               ...result.details,
               nextAppointment: result.details.nextAppointment ?? null,
               startDate: result.details.startDate ?? null,
+              dob: result.details.dob ?? null,
             },
           };
           setData(normalized);
@@ -164,7 +165,7 @@ export default function PatientProfile() {
         setEditing((prev) => ({ ...prev, [key]: false }));
         setData((prev) =>
           prev
-            ? { ...prev, details: { ...prev.details, [key]: formValues[key] ?? null } }
+            ? { ...prev, details: { ...prev.details, [key]: key === 'dob' ? (formValues[key] ?? null) : formValues[key] } }
             : prev
         );
       } else alert("Failed to update");
@@ -211,8 +212,8 @@ export default function PatientProfile() {
       if (success) {
         const refreshed = await PatientInfo(patid);
         if (refreshed) {
-          setData({ ...data, details: refreshed.details });
-          setFormValues(refreshed.details);
+          setData({ ...data, details: { ...refreshed.details, dob: refreshed.details.dob ?? null } });
+          setFormValues({ ...refreshed.details, dob: refreshed.details.dob ?? null });
           alert("Saved");
         }
       } else {
