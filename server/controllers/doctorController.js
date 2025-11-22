@@ -15,12 +15,22 @@ exports.getDoctorById = async (req, res) => {
 		const doctor = await Doctor.findById(id).lean();
 		if (!doctor) return res.status(404).json({ error: "Doctor not found" });
 
+		// compute age if dob present
+		let age = null;
+		if (doctor.dob) {
+			const dob = new Date(doctor.dob);
+			const diff = Date.now() - dob.getTime();
+			age = Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
+		}
+
 		return res.status(200).json({
 			_id: doctor._id,
 			name: doctor.name,
 			patientsCount: Array.isArray(doctor.patients) ? doctor.patients.length : 0,
 			avatar: doctor.avatar || null,
 			createdAt: doctor.createdAt,
+			dob: doctor.dob || null,
+			age,
 		});
 	} catch (err) {
 		console.error("getDoctorById error:", err);

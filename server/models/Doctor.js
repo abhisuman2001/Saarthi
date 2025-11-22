@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const doctorSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
+    dob: { type: Date, default: null },
     patients: [{ type: mongoose.Schema.Types.ObjectId, ref: "Patient" }],
     avatar: { type: String }
   },

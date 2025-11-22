@@ -362,15 +362,20 @@ exports.uploadPatientFile = async (req, res) => {
       stream.end(req.file.buffer);
     });
 
-    const patient = await Patient.findByIdAndUpdate(
-      patid,
-      { [field]: result.secure_url },
-      { new: true }
-    );
+    // Persist uploaded url into plural array field (e.g., studyModelUrls) and also set singular for compatibility
+    const pluralKey = String(field).endsWith("Url") ? String(field).replace(/Url$/, "Urls") : String(field) + "s";
+
+    const update = {
+      $set: { [field]: result.secure_url },
+      $push: { [pluralKey]: result.secure_url },
+    };
+
+    const patient = await Patient.findByIdAndUpdate(patid, update, { new: true });
 
     if (!patient) return res.status(404).json({ error: "Patient not found" });
 
-    res.json({ url: result.secure_url });
+    // return the uploaded url and the updated patient so frontend can sync immediately
+    res.json({ url: result.secure_url, patient, pluralKey, pluralArray: patient[pluralKey] });
   } catch (err) {
     res.status(500).json({ error: "Server error", details: err.message });
   }

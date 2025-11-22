@@ -126,6 +126,13 @@ export default function PatientProfile() {
   // preview urls derived from previewField/index
   const previewUrls = previewField ? getUrlsForKey(previewField) : [];
   const currentPreviewUrl = previewUrls[previewIndex] ?? "";
+  const computeAgeFromDob = (dob?: string | null) => {
+    if (!dob) return null;
+    const d = new Date(dob);
+    if (isNaN(d.getTime())) return null;
+    const diff = Date.now() - d.getTime();
+    return Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
+  };
 
   const editableFields: { label: string; key: keyof PatientDetails; type?: string }[] = [
     { label: "Name", key: "name" },
@@ -211,35 +218,45 @@ export default function PatientProfile() {
 
     setUploadStatus((prev) => ({ ...prev, [key]: `Uploading 0/${fileArray.length}...` }));
 
-    // current urls (append to these)
+    // current urls (append to these) - but prefer server-returned array when available
     const existing = getUrlsForKey(key);
     const newUrls: string[] = [];
+    let serverReturnedArray: string[] | null = null;
 
     try {
       for (let i = 0; i < fileArray.length; i++) {
         const f = fileArray[i];
         setUploadStatus((prev) => ({ ...prev, [key]: `Uploading ${i + 1}/${fileArray.length}...` }));
         const uploadData = await uploadFile(f, patid, key as string);
-        if (uploadData.url) {
-          newUrls.push(uploadData.url);
-        } else {
-          console.error("upload failed for file", f.name);
+        // the server upload handler returns { url, patient, pluralKey, pluralArray }
+        if (uploadData) {
+          const ud = uploadData as unknown as { url?: string; pluralArray?: string[] };
+          if (ud.pluralArray && Array.isArray(ud.pluralArray)) {
+            serverReturnedArray = ud.pluralArray as string[];
+          }
+          if (ud.url) newUrls.push(ud.url);
         }
       }
 
-      const merged = [...existing, ...newUrls];
-      // prefer updating the plural field if available, otherwise fallback to singular
+      // if server returned the updated plural array, use it (safer)
       const pluralKey = (String(key).endsWith("Url") ? String(key).replace(/Url$/, "Urls") : String(key) + "s") as keyof PatientDetails;
-
-      const success = await updatePatientInfo(patid, { [pluralKey]: merged });
-      if (success) {
-        setFormValues((prev) => ({ ...prev, [pluralKey]: merged }));
-        setUploadStatus((prev) => ({ ...prev, [key]: `Upload successful ✅ (${newUrls.length})` }));
+      if (serverReturnedArray) {
+        // update local formValues using the server canonical array
+        setFormValues((prev) => ({ ...prev, [pluralKey]: serverReturnedArray }));
+        setUploadStatus((prev) => ({ ...prev, [key]: `Upload successful ✅ (${serverReturnedArray?.length ?? 0})` }));
       } else {
-        // try updating singular if plural fails
-        await updatePatientInfo(patid, { [key]: merged[merged.length - 1] ?? null });
-        setFormValues((prev) => ({ ...prev, [key]: merged[merged.length - 1] ?? null }));
-        setUploadStatus((prev) => ({ ...prev, [key]: `Upload partial ✅` }));
+        // fallback: merge existing + newly uploaded urls and persist
+        const merged = [...existing, ...newUrls];
+        const success = await updatePatientInfo(patid, { [pluralKey]: merged });
+        if (success) {
+          setFormValues((prev) => ({ ...prev, [pluralKey]: merged }));
+          setUploadStatus((prev) => ({ ...prev, [key]: `Upload successful ✅ (${newUrls.length})` }));
+        } else {
+          // try singular fallback
+          await updatePatientInfo(patid, { [key]: merged[merged.length - 1] ?? null });
+          setFormValues((prev) => ({ ...prev, [key]: merged[merged.length - 1] ?? null }));
+          setUploadStatus((prev) => ({ ...prev, [key]: `Upload partial ✅` }));
+        }
       }
     } catch (err) {
       console.error("upload error:", err);
@@ -283,7 +300,10 @@ export default function PatientProfile() {
           {/* Left: Details (full width) */}
           <div className="space-y-4">
             <div className="flex items-start justify-between">
-              <h2 className="text-xl font-semibold text-gray-800">Patient Details</h2>
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-800">Patient Details</h2>
+                  <div className="text-sm text-gray-600 mt-1">{data?.details?.name ?? '—'}{data?.details?.dob ? ` · ${computeAgeFromDob(data.details.dob)} yrs` : ''}</div>
+                </div>
               <div className="flex items-center gap-2">
                 <button onClick={() => { setFormValues(data.details); alert('Reverted'); }} className="px-3 py-1 border rounded">Revert</button>
                 <button onClick={handleSaveAll} className="px-3 py-1 bg-cyan-600 text-white rounded">Save All</button>
@@ -400,8 +420,8 @@ export default function PatientProfile() {
                     ‹ Prev
                   </button>
 
-                  <div className="flex-1 flex justify-center">
-                    <img src={currentPreviewUrl || "https://via.placeholder.com/600x400?text=No+Image"} alt="preview" className="max-h-[75vh] object-contain w-full" />
+                    <div className="flex-1 flex justify-center">
+                    <img loading="lazy" src={currentPreviewUrl || "https://via.placeholder.com/600x400?text=No+Image"} alt="preview" className="max-h-[75vh] object-contain w-full" />
                   </div>
 
                   <button
@@ -445,6 +465,7 @@ export default function PatientProfile() {
                       aria-label={`Preview ${label}`}
                     >
                       <img
+                        loading="lazy"
                         src={thumb}
                         alt={label}
                         className="object-cover w-full h-full"
@@ -463,7 +484,7 @@ export default function PatientProfile() {
                     <div className="w-full mt-2 flex gap-2 overflow-x-auto">
                       {urls.map((u, idx) => (
                         <button key={u + idx} onClick={() => { setPreviewField(key); setPreviewIndex(idx); setPreviewOpen(true); }} className="w-12 h-12 flex-shrink-0 rounded-md overflow-hidden border">
-                          <img src={u} alt={`${label} ${idx+1}`} className="object-cover w-full h-full" onError={(e) => { (e.target as HTMLImageElement).src = "https://via.placeholder.com/100?text=No"; }} />
+                          <img loading="lazy" src={u} alt={`${label} ${idx+1}`} className="object-cover w-full h-full" onError={(e) => { (e.target as HTMLImageElement).src = "https://via.placeholder.com/100?text=No"; }} />
                         </button>
                       ))}
                     </div>
