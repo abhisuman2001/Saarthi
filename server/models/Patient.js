@@ -48,6 +48,16 @@ const patientSchema = new mongoose.Schema(
     iopaUrl: { type: String, default: "https://placehold.co/600x400?text=Not+Found" },
     anyOtherRecordUrl: { type: String, default: "https://placehold.co/600x400?text=Not+Found" },
 
+    // pluralized arrays to support multiple uploaded images per investigation
+    studyModelUrls: { type: [String], default: [] },
+    photographsUrls: { type: [String], default: [] },
+    opgUrls: { type: [String], default: [] },
+    lateralCephalogramUrls: { type: [String], default: [] },
+    paCephalogramUrls: { type: [String], default: [] },
+    cbctUrls: { type: [String], default: [] },
+    iopaUrls: { type: [String], default: [] },
+    anyOtherRecordUrls: { type: [String], default: [] },
+
     finalDiagnosis: { type: String, default: null },
 
     treatmentPlan: { type: String, default: null },
