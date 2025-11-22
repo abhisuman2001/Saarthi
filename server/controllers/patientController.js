@@ -62,6 +62,14 @@ exports.addPatient = async (req, res) => {
       // We catch the error so the patient creation doesn't fail if SMS fails
       console.error("Failed to send SMS:", smsError.message);
     }
+
+    // 3. SEND WHATSAPP LOGIC HERE
+    try {
+      await sendWhatsAppMessage(contactNumber, "Welcome to OrthoSaarthi");
+      console.log(`WhatsApp sent to ${contactNumber}`);
+    } catch (waError) {
+      console.error("Failed to send WhatsApp:", waError.message);
+    }
   
     // Return new patient ID
     res.status(201).json(patient);
@@ -151,6 +159,112 @@ exports.addAdherenceEntry = async (req, res) => {
 
 
     // Add new adherence entry (store optional fields if provided)
+    // Compute dynamic score when score not provided and produce exact breakdown
+    const computeDynamicScoreWithBreakdown = (patientDoc, payload) => {
+      const breakdown = {
+        base: 0,
+        durationPoints: 0,
+        usefulPoints: 0,
+        photoPoints: 0,
+        appliancePoints: 0,
+        streakPoints: 0,
+        totalBeforeClamp: 0,
+        final: 0,
+      };
+
+      // If they marked not-adherent, score is 0 and breakdown reflects that
+      if (!payload.adherence) {
+        breakdown.base = 0;
+        breakdown.totalBeforeClamp = 0;
+        breakdown.final = 0;
+        return { score: 0, breakdown };
+      }
+
+      let s = 50; // base for adherence
+      breakdown.base = 50;
+
+      // duration mapping from frontend-friendly labels to points
+      const mapDurationToPoints = (d) => {
+        if (!d) return 0;
+        const ds = String(d).trim();
+        if (ds === '<6 hrs') return 0;
+        if (ds === '6-10 hrs') return 8;
+        if (ds === '10-14 hrs') return 15;
+        if (ds === '14-18 hrs') return 22;
+        if (ds === '>18 hrs') return 30;
+        // fallback: if numeric minutes provided
+        const n = Number(d);
+        if (!isNaN(n)) {
+          const dur = Math.max(0, Math.min(120, n));
+          return Math.round((dur / 120) * 30);
+        }
+        return 0;
+      };
+
+      if (payload.duration) {
+        const durPts = mapDurationToPoints(payload.duration);
+        s += durPts;
+        breakdown.durationPoints = durPts;
+      }
+
+      // 'useful' flag gives a small boost
+      if (payload.useful === true) {
+        s += 10;
+        breakdown.usefulPoints = 10;
+      }
+
+      // photo evidence gives a modest boost
+      if (payload.photoUrl) {
+        s += 10;
+        breakdown.photoPoints = 10;
+      }
+
+      // appliance type weighting
+      if (payload.applianceType) {
+        const t = String(payload.applianceType).toLowerCase();
+        if (t.includes('aligner')) { s += 6; breakdown.appliancePoints = 6; }
+        else if (t.includes('brace') || t.includes('braces')) { s += 4; breakdown.appliancePoints = 4; }
+      }
+
+      // streak: count consecutive previous 'yes' entries ending yesterday
+      try {
+        const history = Array.isArray(patientDoc.adherenceHistory) ? patientDoc.adherenceHistory : [];
+        const today = new Date();
+        // Normalize to date-only for comparison
+        const normalize = d => new Date(new Date(d).getFullYear(), new Date(d).getMonth(), new Date(d).getDate());
+        let streak = 0;
+        // iterate backwards
+        for (let i = history.length - 1; i >= 0; i--) {
+          const e = history[i];
+          const ed = normalize(e.date || e);
+          const yesterday = new Date(today);
+          yesterday.setDate(yesterday.getDate() - (streak + 1));
+          const yd = normalize(yesterday);
+          if (e.adherence === true && ed.getTime() === yd.getTime()) {
+            streak += 1;
+          } else {
+            break;
+          }
+        }
+        const streakPts = Math.min(streak, 7) * 3;
+        s += streakPts;
+        breakdown.streakPoints = streakPts;
+      } catch (err) {
+        console.error('Streak compute error', err && err.message ? err.message : err);
+      }
+
+      // clamp and round
+      breakdown.totalBeforeClamp = s;
+      s = Math.round(Math.max(0, Math.min(100, s)));
+      breakdown.final = s;
+      return { score: s, breakdown };
+    };
+
+    let computed = null;
+    if (typeof score !== 'number') {
+      computed = computeDynamicScoreWithBreakdown(patient, { adherence, duration, useful, applianceType, photoUrl });
+    }
+
     const entry = {
       adherence,
       notes: notes || "",
@@ -158,7 +272,8 @@ exports.addAdherenceEntry = async (req, res) => {
       duration: duration || undefined,
       applianceType: applianceType || undefined,
       photoUrl: photoUrl || undefined,
-      score: typeof score === 'number' ? score : undefined,
+      score: typeof score === 'number' ? score : (computed ? computed.score : undefined),
+      breakdown: typeof score === 'number' ? null : (computed ? computed.breakdown : null),
       reason: reason || undefined,
       date: date ? new Date(date) : new Date(),
     };
@@ -169,7 +284,9 @@ exports.addAdherenceEntry = async (req, res) => {
 
     await patient.save();
 
-    res.json({ message: "Adherence entry added", patient });
+    // Return saved patient and the newly added entry (last entry) for the client to read exact score + breakdown
+    const savedEntry = patient.adherenceHistory && patient.adherenceHistory.length > 0 ? patient.adherenceHistory[patient.adherenceHistory.length - 1] : null;
+    res.json({ message: "Adherence entry added", patient, entry: savedEntry });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });

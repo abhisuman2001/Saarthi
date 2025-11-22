@@ -1,7 +1,7 @@
 // src/pages/Login.tsx
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { loginUser, changeUserPassword } from "../api/User";
+import { loginUser, sendOtp, verifyOtp, resetPassword } from "../api/User";
 import { requestFirebaseNotificationPermission } from "../fb.ts";
 import "./LoginPage.css";
 import Layout from "../components/Layout";
@@ -20,10 +20,16 @@ export default function LoginPage() {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Change password states
-  const [showChangePassword, setShowChangePassword] = useState(false);
-  const [oldPassword, setOldPassword] = useState("");
+  // Forgot / Reset password (OTP) states
+  const [showChangePassword, setShowChangePassword] = useState(false); // toggles forgot-password UI
   const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [forgotStep, setForgotStep] = useState<'idle'|'otp'|'reset'>('idle');
+  const [otp, setOtp] = useState<string[]>(new Array(6).fill(''));
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [otpError, setOtpError] = useState<string | null>(null);
 
   // ----- LOGIN HANDLER -----
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -67,37 +73,85 @@ export default function LoginPage() {
     }
   };
 
-  // ----- CHANGE PASSWORD HANDLER -----
-  const handleChangePassword = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  // ----- FORGOT PASSWORD (OTP) HANDLERS -----
+  const handleSendOtp = async () => {
     setError(null);
-
-    if (!contactNumber || !oldPassword || !newPassword) {
-      setError("All fields are required");
+    setOtpError(null);
+    if (!contactNumber) {
+      setError("Contact number is required to send OTP");
       return;
     }
 
     try {
-      setLoading(true);
-      const response = await changeUserPassword({
-        contactNumber,
-        oldPassword,
-        newPassword,
-      });
-
-      if (response.success) {
-        // alert("Password changed successfully");
-        setShowChangePassword(false);
-        setOldPassword("");
-        setNewPassword("");
+      setSendingOtp(true);
+      const res = await sendOtp({ contactNumber });
+      if (res.success) {
+        setForgotStep('otp');
       } else {
-        setError(response.message || "Failed to change password");
+        setError(res.message || 'Failed to send OTP');
       }
     } catch (err) {
       console.error(err);
-      setError("Something went wrong");
+      setError('Failed to send OTP');
     } finally {
-      setLoading(false);
+      setSendingOtp(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    setError(null);
+    setOtpError(null);
+    const code = otp.join('');
+    if (code.length < 4) {
+      setOtpError('Enter the OTP');
+      return;
+    }
+    try {
+      setVerifyingOtp(true);
+      const res = await verifyOtp({ contactNumber, otp: code });
+      if (res.success) {
+        setForgotStep('reset');
+      } else {
+        setOtpError(res.message || 'Invalid OTP');
+      }
+    } catch (err) {
+      console.error(err);
+      setOtpError('OTP verification failed');
+    } finally {
+      setVerifyingOtp(false);
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError(null);
+    setOtpError(null);
+    if (!newPassword || !confirmPassword) {
+      setError('All fields are required');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+    const code = otp.join('');
+    try {
+      setResetting(true);
+      const res = await resetPassword({ contactNumber, otp: code, newPassword });
+      if (res.success) {
+        setShowChangePassword(false);
+        setForgotStep('idle');
+        setNewPassword('');
+        setConfirmPassword('');
+        setOtp(new Array(6).fill(''));
+      } else {
+        setError(res.message || 'Failed to reset password');
+      }
+    } catch (err) {
+      console.error(err);
+      setError('Failed to reset password');
+    } finally {
+      setResetting(false);
     }
   };
 
@@ -123,7 +177,7 @@ export default function LoginPage() {
                   <label className="block mb-1 text-sm font-medium text-gray-700">Contact Number</label>
                   <input
                     type="text"
-                    placeholder="9874563210"
+                    placeholder="ex- 9876543210" 
                     value={contactNumber}
                     onChange={(e) => setContactNumber(e.target.value)}
                     className="form-input"
@@ -149,46 +203,93 @@ export default function LoginPage() {
               </form>
             )}
 
-            {/* ----- CHANGE PASSWORD FORM ----- */}
+            {/* ----- FORGOT / RESET PASSWORD (OTP) UI ----- */}
             {showChangePassword && (
-              <form onSubmit={handleChangePassword} className="mt-4 space-y-4 bg-gray-100 p-4 rounded-lg shadow-md">
-                <h3 className="text-lg font-semibold text-gray-700 text-center">Change  Password</h3>
+              <div className="mt-4 bg-gray-100 p-4 rounded-lg shadow-md">
+                <h3 className="text-lg font-semibold text-gray-700 text-center">Forgot Password</h3>
 
-                <div>
-                  <label className="block mb-1 text-sm font-medium text-gray-700">Contact Number</label>
-                  <input
-                    type="text"
-                    value={contactNumber}
-                    onChange={(e) => setContactNumber(e.target.value)}
-                    className="form-input"
-                    required
-                  />
-                </div>
+                {forgotStep === 'idle' && (
+                  <div className="mt-3">
+                    <label className="block mb-1 text-sm font-medium text-gray-700">Contact Number</label>
+                    <input
+                      type="text"
+                      value={contactNumber}
+                      onChange={(e) => setContactNumber(e.target.value)}
+                      className="form-input"
+                      placeholder="Enter registered contact"
+                      required
+                    />
+                    <button onClick={handleSendOtp} disabled={sendingOtp} className="primary-btn mt-3">
+                      {sendingOtp ? 'Sending OTP...' : 'Send OTP'}
+                    </button>
+                  </div>
+                )}
 
-                <div>
-                  <label className="block mb-1 text-sm font-medium text-gray-700">Old Password</label>
-                  <input
-                    type="password"
-                    value={oldPassword}
-                    onChange={(e) => setOldPassword(e.target.value)}
-                    className="form-input"
-                    required
-                  />
-                </div>
+                {forgotStep === 'otp' && (
+                  <div className="mt-3">
+                    <p className="text-sm text-gray-600 text-center mb-3">Enter the 6-digit OTP sent to your phone</p>
+                    <div className="otp-inputs" style={{display:'flex',gap:8,justifyContent:'center'}}>
+                      {otp.map((val, idx) => (
+                        <input
+                          key={idx}
+                          inputMode="numeric"
+                          maxLength={1}
+                          value={val}
+                          onChange={(e) => {
+                            const v = e.target.value.replace(/[^0-9]/g, '');
+                            const next = [...otp];
+                            next[idx] = v;
+                            setOtp(next);
+                            if (v && idx < otp.length - 1) {
+                              const el = document.querySelectorAll<HTMLInputElement>('.otp-inputs input')[idx + 1];
+                              el?.focus();
+                            }
+                          }}
+                          className="otp-box"
+                          style={{width:44,height:52,textAlign:'center',fontSize:18,borderRadius:8,border:'1px solid rgba(15,23,36,0.08)'}}
+                        />
+                      ))}
+                    </div>
+                    {otpError && <p className="text-red-500 text-center mt-2">{otpError}</p>}
+                    <div style={{display:'flex',gap:8,marginTop:12,justifyContent:'center'}}>
+                      <button onClick={handleVerifyOtp} disabled={verifyingOtp} className="primary-btn" style={{width:160}}>
+                        {verifyingOtp ? 'Verifying...' : 'Verify OTP'}
+                      </button>
+                      <button onClick={handleSendOtp} disabled={sendingOtp} className="secondary-btn" style={{width:120}}>
+                        {sendingOtp ? 'Resending...' : 'Resend'}
+                      </button>
+                    </div>
+                  </div>
+                )}
 
-                <div>
-                  <label className="block mb-1 text-sm font-medium text-gray-700">New Password</label>
-                  <input
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    className="form-input"
-                    required
-                  />
-                </div>
-
-                <button type="submit" className="primary-btn muted">Change Password</button>
-              </form>
+                {forgotStep === 'reset' && (
+                  <form onSubmit={handleResetPassword} className="mt-3 space-y-3">
+                    <div>
+                      <label className="block mb-1 text-sm font-medium text-gray-700">New Password</label>
+                      <input
+                        type="password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        className="form-input"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block mb-1 text-sm font-medium text-gray-700">Confirm Password</label>
+                      <input
+                        type="password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className="form-input"
+                        required
+                      />
+                    </div>
+                    <button type="submit" disabled={resetting} className="primary-btn muted">
+                      {resetting ? 'Resetting...' : 'Reset Password'}
+                    </button>
+                  </form>
+                )}
+              </div>
             )}
 
             {/* ----- TOGGLE BUTTON ----- */}

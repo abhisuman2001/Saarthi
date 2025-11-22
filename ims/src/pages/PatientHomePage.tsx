@@ -23,7 +23,7 @@ export default function PatientHomepage() {
     startDate?: string;
     provisionalDiagnosis?: string;
     finalDiagnosis?: string;
-    adherenceHistory?: Array<{ _id?: string; adherence?: boolean; date?: string; score?: number }>;
+    adherenceHistory?: Array<{ _id?: string; adherence?: boolean; date?: string; score?: number; breakdown?: { [k:string]: number } | null }>;
   };
   const [data, setData] = useState<LocalPatientData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -41,6 +41,10 @@ export default function PatientHomepage() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [capturedPreview, setCapturedPreview] = useState<string | null>(null);
   const [submissionResult, setSubmissionResult] = useState<{ score: number; message: string } | null>(null);
+  const [submissionBreakdown, setSubmissionBreakdown] = useState<string[] | null>(null);
+  const [showBreakdownTooltip, setShowBreakdownTooltip] = useState(false);
+  const [isMobileTooltip, setIsMobileTooltip] = useState(false);
+  const [expandedBreakdowns, setExpandedBreakdowns] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(false);
 
   const reasons = [
@@ -68,6 +72,7 @@ export default function PatientHomepage() {
       "Facemask",
       "Retainer",
       "Aligner",
+      "Fixed Appliance",
       "Others",
     ];
 
@@ -202,6 +207,14 @@ export default function PatientHomepage() {
       if (capturedPreview) URL.revokeObjectURL(capturedPreview);
     };
   }, [capturedPreview]);
+
+  // Responsive tooltip: detect small screens so tooltip appears centered below icon
+  useEffect(() => {
+    const update = () => setIsMobileTooltip(typeof window !== 'undefined' ? window.innerWidth < 640 : false);
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
 
   // ESC key handler: close camera or clear captured preview
   useEffect(() => {
@@ -354,22 +367,55 @@ export default function PatientHomepage() {
 
       const response = await addAdherenceEntry(patid, payload);
 
-      if (response) {
-        // Optimistically update local state so the UI (badge + track records) reflects the new submission immediately
+      if (response && typeof response === 'object') {
+        // The server responds with { message, patient }
+        interface ServerHistoryEntry { date?: string; score?: number; _id?: string; adherence?: boolean }
+        interface ServerPatient { adherenceHistory?: ServerHistoryEntry[]; [k: string]: unknown }
+        interface ServerResp { message?: string; patient?: ServerPatient; [k: string]: unknown }
+
+        const resp = response as ServerResp;
+        const returnedPatient = (resp.patient as ServerPatient) ?? (resp as unknown as ServerPatient);
+
+        // Update local optimistic UI: add a placeholder entry so track records reflect activity
         setData((prev) => {
           const prevDetails = (prev?.details as PatientDetails) ?? {};
-          const respObj = response as { _id?: string } | null;
-          const newEntry = {
-            _id: respObj?._id || `local-${Date.now()}`,
+          const newEntryTyped: { _id?: string; adherence?: boolean; date?: string; score?: number } = {
+            _id: `local-${Date.now()}`,
             adherence: answer === "yes",
             date: payload.date,
           };
-          const history = prevDetails.adherenceHistory ? [...prevDetails.adherenceHistory, newEntry] : [newEntry];
+          const history = prevDetails.adherenceHistory ? [...prevDetails.adherenceHistory, newEntryTyped] : [newEntryTyped];
           const newDetails: PatientDetails = { ...prevDetails, adherenceHistory: history };
           return { ...(prev ?? {}), answeredToday: true, details: newDetails };
         });
 
-        // refresh from server but ignore failures — local optimistic update keeps UI consistent
+        // If server returned an explicit `entry` (the saved adherence entry), prefer its score and breakdown
+        let serverScore: number | null = null;
+        type ServerBreakdown = { base?: number; durationPoints?: number; usefulPoints?: number; photoPoints?: number; appliancePoints?: number; streakPoints?: number; totalBeforeClamp?: number; final?: number } | null;
+        let serverBreakdown: ServerBreakdown = null;
+        try {
+          const returnedEntry = (resp as unknown as { entry?: Record<string, unknown> }).entry;
+          if (returnedEntry && typeof returnedEntry === 'object') {
+            if (typeof returnedEntry.score === 'number') serverScore = returnedEntry.score;
+            if (returnedEntry.breakdown && typeof returnedEntry.breakdown === 'object') serverBreakdown = returnedEntry.breakdown as ServerBreakdown;
+          } else {
+            // fallback to searching returnedPatient.history for a matching entry
+            const hist = (returnedPatient && returnedPatient.adherenceHistory) ? returnedPatient.adherenceHistory : null;
+            if (hist && hist.length > 0) {
+              const match = hist.slice().reverse().find((e: ServerHistoryEntry | undefined) => {
+                if (!e) return false;
+                if (e.date && payload.date) return new Date(e.date).toISOString() === new Date(payload.date).toISOString();
+                return false;
+              }) || hist[hist.length - 1];
+              if (match && typeof match.score === 'number') serverScore = match.score;
+              if (match && (match as unknown as { breakdown?: ServerBreakdown }).breakdown) serverBreakdown = (match as unknown as { breakdown?: ServerBreakdown }).breakdown ?? null;
+            }
+          }
+        } catch (err) {
+          console.warn('Failed to parse server response for score', err);
+        }
+
+        // Refresh full data from server to get canonical state (best-effort)
         try {
           await loadPatientInfo();
         } catch {
@@ -387,12 +433,31 @@ export default function PatientHomepage() {
         setPhotoPreview(null);
         setCapturedPreview(null);
 
-        // show motivational message after submit
-        const message = score === 100
+        const finalScore = typeof serverScore === 'number' ? serverScore : score;
+        const message = finalScore === 100
           ? "Excellent — keep it up! Come back tomorrow to continue your progress."
           : "Thanks for reporting — don't be discouraged. Please try again tomorrow and keep going!";
-        // attach a small reminder in UI (we store locally)
-        setSubmissionResult({ score, message });
+
+        // If server provided an exact breakdown object, format that for display
+        const formatServerBreakdown = (b: ServerBreakdown | null) => {
+          const parts: string[] = [];
+          if (!b) return parts;
+          if (typeof b.base === 'number') parts.push(`Base adherence: ${b.base} pts`);
+          if (typeof b.durationPoints === 'number' && b.durationPoints !== 0) parts.push(`Duration: +${b.durationPoints} pts`);
+          if (typeof b.photoPoints === 'number' && b.photoPoints !== 0) parts.push(`Photo evidence: +${b.photoPoints} pts`);
+          if (typeof b.usefulPoints === 'number' && b.usefulPoints !== 0) parts.push(`Marked useful: +${b.usefulPoints} pts`);
+          if (typeof b.appliancePoints === 'number' && b.appliancePoints !== 0) parts.push(`Appliance bonus: +${b.appliancePoints} pts`);
+          if (typeof b.streakPoints === 'number' && b.streakPoints !== 0) parts.push(`Streak bonus: +${b.streakPoints} pts`);
+          if (typeof b.totalBeforeClamp === 'number') parts.push(`Raw total: ${Math.round(b.totalBeforeClamp)} pts`);
+          if (typeof b.final === 'number') parts.push(`Final (clamped 0-100): ${Math.round(b.final)} pts`);
+          return parts;
+        };
+
+        const breakdown = serverBreakdown ? formatServerBreakdown(serverBreakdown) : null;
+
+        // show server-computed score when available
+        setSubmissionResult({ score: finalScore, message });
+        if (breakdown) setSubmissionBreakdown(breakdown);
       } else {
         alert("Failed to submit. Please try again.");
       }
@@ -589,7 +654,39 @@ export default function PatientHomepage() {
                       style={{ width: `${submissionResult ? submissionResult.score : (data?.answeredToday ? 100 : 0)}%`, transition: 'width 700ms ease' }}
                     />
                   </div>
-                  <div className="mt-2 text-2xl font-bold">{submissionResult ? submissionResult.score : (data?.answeredToday ? 100 : 0)}%</div>
+                    <div className="mt-2 text-2xl font-bold flex items-center justify-center gap-2">
+                      <div>{submissionResult ? submissionResult.score : (data?.answeredToday ? 100 : 0)}%</div>
+                      {/* info icon with tooltip on hover */}
+                      <div className="relative inline-block">
+                        <button
+                          onMouseEnter={() => setShowBreakdownTooltip(true)}
+                          onMouseLeave={() => setShowBreakdownTooltip(false)}
+                          className="inline-flex items-center justify-center rounded-full w-6 h-6 bg-gray-200 text-gray-700 text-sm cursor-default"
+                          aria-hidden
+                          aria-label="Score breakdown"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="12" cy="12" r="10" stroke="#374151" strokeWidth="0.8" fill="#e5e7eb" />
+                            <path d="M11 11h1v4h1" stroke="#374151" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                            <circle cx="11.5" cy="7.5" r="0.6" fill="#374151" />
+                          </svg>
+                        </button>
+
+                        {showBreakdownTooltip && submissionBreakdown && (
+                          <div
+                            className="absolute z-50 mt-2 p-3 bg-white border border-gray-200 rounded shadow-lg text-xs text-gray-700 transition-opacity duration-200 ease-out"
+                            style={isMobileTooltip ? { left: '50%', transform: 'translateX(-50%) translateY(6px)', width: '85vw', maxWidth: 320 } : { right: 0, top: '26px', transform: 'translateY(6px)', width: 320 }}
+                          >
+                            <div className="font-semibold mb-1">Score breakdown</div>
+                            <ul className="list-disc list-inside space-y-1">
+                              {submissionBreakdown.map((line, idx) => (
+                                <li key={idx}>{line}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                  </div>
                 </div>
 
                 <div className="mt-3 text-sm text-gray-600">{submissionResult ? submissionResult.message : (data?.answeredToday ? 'Great — you reported today!' : 'Please submit your daily check')}</div>
@@ -601,12 +698,52 @@ export default function PatientHomepage() {
               <h3 className="font-semibold text-gray-800 mb-2">Track Records</h3>
               {details?.adherenceHistory && details.adherenceHistory.length > 0 ? (
                 <div className="space-y-2">
-                  {details.adherenceHistory.slice().reverse().map((entry) => (
-                    <div key={entry._id} className="p-2 border rounded">
-                      <div className="text-sm font-medium">{entry.adherence ? 'Wore appliance' : 'Did not wear'}</div>
-                      <div className="text-xs text-gray-500">{entry.date ? new Date(entry.date).toLocaleString() : ''}</div>
-                    </div>
-                  ))}
+                      {details.adherenceHistory.slice().reverse().map((entry) => (
+                        <div key={entry._id || JSON.stringify(entry.date)} className="p-2 border rounded">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <div className="text-sm font-medium">{entry.adherence ? 'Wore appliance' : 'Did not wear'}</div>
+                              <div className="text-xs text-gray-500">{entry.date ? new Date(entry.date).toLocaleString() : ''}</div>
+                            </div>
+                            <div className="ml-2">
+                              {entry.breakdown ? (
+                                <button
+                                  onClick={() => setExpandedBreakdowns((s) => ({ ...s, [entry._id || String(entry.date)]: !s[entry._id || String(entry.date)] }))}
+                                  className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-100 text-xs text-gray-700"
+                                >
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <circle cx="12" cy="12" r="10" stroke="#374151" strokeWidth="0.8" fill="#f3f4f6" />
+                                    <path d="M11 11h1v4h1" stroke="#374151" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                                    <circle cx="11.5" cy="7.5" r="0.6" fill="#374151" />
+                                  </svg>
+                                  <span>{expandedBreakdowns[entry._id || String(entry.date)] ? 'Hide' : 'Breakdown'}</span>
+                                </button>
+                              ) : null}
+                            </div>
+                          </div>
+
+                          {entry.breakdown && expandedBreakdowns[entry._id || String(entry.date)] && (
+                            <div className="mt-2 text-xs text-gray-700 bg-gray-50 p-2 rounded">
+                              <div className="font-medium mb-1">Exact breakdown</div>
+                              <ul className="list-disc list-inside space-y-1">
+                                {(() => {
+                                  const b = entry.breakdown as Record<string, number | undefined>;
+                                  const lines: string[] = [];
+                                  if (typeof b.base === 'number') lines.push(`Base: ${b.base} pts`);
+                                  if (typeof b.durationPoints === 'number' && b.durationPoints !== 0) lines.push(`Duration: +${b.durationPoints} pts`);
+                                  if (typeof b.photoPoints === 'number' && b.photoPoints !== 0) lines.push(`Photo: +${b.photoPoints} pts`);
+                                  if (typeof b.usefulPoints === 'number' && b.usefulPoints !== 0) lines.push(`Marked useful: +${b.usefulPoints} pts`);
+                                  if (typeof b.appliancePoints === 'number' && b.appliancePoints !== 0) lines.push(`Appliance bonus: +${b.appliancePoints} pts`);
+                                  if (typeof b.streakPoints === 'number' && b.streakPoints !== 0) lines.push(`Streak bonus: +${b.streakPoints} pts`);
+                                  if (typeof b.totalBeforeClamp === 'number') lines.push(`Raw total: ${Math.round(b.totalBeforeClamp)} pts`);
+                                  if (typeof b.final === 'number') lines.push(`Final: ${Math.round(b.final)} pts`);
+                                  return lines.map((ln, id) => <li key={id}>{ln}</li>);
+                                })()}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      ))}
                 </div>
               ) : (
                 <div className="text-gray-600">No track records yet.</div>

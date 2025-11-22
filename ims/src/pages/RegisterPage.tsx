@@ -37,9 +37,10 @@ export default function RegisterPage() {
       } else {
         setError("Failed to register doctor");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setError(err.message || "Registration failed");
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(msg || "Registration failed");
     } finally {
       setLoading(false);
     }

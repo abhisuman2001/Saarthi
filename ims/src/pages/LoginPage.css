@@ -211,7 +211,10 @@ body {
   inset:0;
   width:100%;
   height:100%;
-  background-image: url('https://cdn.pixabay.com/photo/2019/07/30/15/57/dentist-4373290_1280.jpg');
+  /* Public assets in Vite are served from the root; reference without `/public` */
+  background-image: url('/ORTHOSAARTHI.svg');
+  background-size: cover;
+  background-position: 60% center;
   background-size:cover;
   background-repeat:no-repeat;
   background-position: 60% center;
@@ -222,4 +225,20 @@ body {
   .split-container{ height:auto; flex-direction:column; margin-top:48px }
   .right-illus{ width:100%; height:220px; background-position:center }
   .left-inner{ padding:20px }
+}
+
+/* OTP input styles for forgot-password flow */
+.otp-inputs input.otp-box{
+  width:48px;
+  height:56px;
+  text-align:center;
+  font-size:18px;
+  border-radius:10px;
+  border:1px solid rgba(15,23,36,0.06);
+  background:white;
+  outline:none;
+}
+.otp-inputs input.otp-box:focus{
+  box-shadow: 0 8px 28px rgba(99,102,241,0.08);
+  transform: translateY(-2px);
 }

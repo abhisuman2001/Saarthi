@@ -9,6 +9,8 @@ const adherenceHistorySchema = new mongoose.Schema({
   applianceType: { type: String, default: null },
   photoUrl: { type: String, default: null },
   score: { type: Number, default: null },
+  // store exact breakdown used to compute `score` for transparency and audit
+  breakdown: { type: mongoose.Schema.Types.Mixed, default: null },
   reason: { type: String, default: null }
 });
 
