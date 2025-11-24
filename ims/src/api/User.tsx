@@ -88,7 +88,7 @@ export async function changeUserPassword({
 // --- Forgot password / OTP helpers (frontend API wrappers)
 export async function sendOtp({ contactNumber }: { contactNumber: string }): Promise<{ success: boolean; message?: string }>{
   const backend = import.meta.env.VITE_BACKEND || "http://localhost:5000";
-  const res = await fetch(`${backend}/api/user/send-otp`, {
+  const res = await fetch(`${backend}/api/user/forgot-password`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ contactNumber }),

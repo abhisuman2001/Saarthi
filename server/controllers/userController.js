@@ -1,3 +1,71 @@
+exports.resetPassword = async (req, res) => {
+  const { contactNumber, otp, newPassword } = req.body;
+  if (!contactNumber || !otp || !newPassword) {
+    return res.status(400).json({ error: 'All fields are required' });
+  }
+  const code = verificationCodes[contactNumber];
+  if (!code) {
+    return res.status(400).json({ error: 'No OTP sent to this number' });
+  }
+  if (code !== otp) {
+    return res.status(400).json({ error: 'Invalid OTP' });
+  }
+  const user = await User.findOne({ contactNumber });
+  if (!user) {
+    return res.status(400).json({ error: 'User not found' });
+  }
+  user.password = newPassword;
+  await user.save();
+  // Optionally clear the OTP after successful reset
+  delete verificationCodes[contactNumber];
+  return res.json({ success: true, message: 'Password reset successfully' });
+};
+exports.verifyOtp = async (req, res) => {
+  const { contactNumber, otp } = req.body;
+  if (!contactNumber || !otp) {
+    return res.status(400).json({ error: 'Contact number and OTP required' });
+  }
+  const code = verificationCodes[contactNumber];
+  if (!code) {
+    return res.status(400).json({ error: 'No OTP sent to this number' });
+  }
+  if (code !== otp) {
+    return res.status(400).json({ error: 'Invalid OTP' });
+  }
+  return res.json({ success: true, message: 'OTP verified' });
+};
+const twilio = require('twilio');
+const accountSid = 'AC039469d4acdaafd46847e69ab7831332'; // Replace with your actual SID
+const authToken = 'c120f67483b5161f1e32e85513639e3c'; // Replace with your actual token
+const client = twilio(accountSid, authToken);
+
+// In-memory store for codes (use DB for production)
+const verificationCodes = {};
+
+exports.forgotPassword = async (req, res) => {
+  const { contactNumber } = req.body;
+  if (!contactNumber) {
+    return res.status(400).json({ error: 'Contact number required' });
+  }
+  // Check if user exists
+  const user = await User.findOne({ contactNumber });
+  if (!user) {
+    return res.status(400).json({ error: 'Contact number not registered' });
+  }
+  // Generate 6-digit code
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  verificationCodes[contactNumber] = code;
+  try {
+    await client.messages.create({
+      from: 'whatsapp:+14155238886',
+      to: `whatsapp:+91${contactNumber}`,
+      body: `Your OrthoSaarthi password reset code is: ${code}`
+    });
+    return res.json({ success: true, message: 'Code sent via WhatsApp' });
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to send WhatsApp message' });
+  }
+};
 const User = require("../models/User");
 const Doctor = require("../models/Doctor");
 
