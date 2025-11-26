@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { PatientInfo, updatePatientInfo } from "../api/Patientinfo";
+import { useLocation, useNavigate, Link } from "react-router-dom";
+import { PatientInfo, updatePatientInfo, uploadFile } from "../api/Patientinfo";
 import Layout from "../components/Layout";
 
 type AdherenceEntry = {
@@ -73,6 +73,7 @@ export default function PatientProfile() {
   const [previewField, setPreviewField] = useState<keyof PatientDetails | null>(null);
   const [previewIndex, setPreviewIndex] = useState<number>(0);
   const [otherAppliance, setOtherAppliance] = useState<string>("");
+  const [uploading, setUploading] = useState<{ [k: string]: boolean }>({});
 
   const applianceOptions: string[] = useMemo(
     () => [
@@ -211,6 +212,45 @@ export default function PatientProfile() {
     }
   };
 
+  const handleFileUpload = async (field: keyof PatientDetails, files: FileList | null) => {
+    if (!patid) return;
+    if (!files || files.length === 0) return;
+    const file = files[0];
+    try {
+      setUploading((s) => ({ ...s, [String(field)]: true }));
+      const res = await uploadFile(file, patid, String(field));
+      if (res && res.url) {
+        const success = await updatePatientInfo(patid, { [field]: res.url } as unknown as Partial<PatientDetails>);
+        if (success) {
+          setFormValues((prev) => ({ ...prev, [field]: res.url }));
+          alert('Uploaded');
+        } else alert('Failed to save uploaded file');
+      } else {
+        alert('Upload failed');
+      }
+    } catch (err) {
+      console.error('upload failed', err);
+      alert('Upload error');
+    } finally {
+      setUploading((s) => ({ ...s, [String(field)]: false }));
+    }
+  };
+
+  const handleDeleteFile = async (field: keyof PatientDetails) => {
+    if (!patid) return;
+    if (!confirm('Delete this file?')) return;
+    try {
+      const success = await updatePatientInfo(patid, { [field]: null } as unknown as Partial<PatientDetails>);
+      if (success) {
+        setFormValues((prev) => ({ ...prev, [field]: null }));
+        alert('Deleted');
+      } else alert('Failed to delete');
+    } catch (err) {
+      console.error('delete error', err);
+      alert('Delete failed');
+    }
+  };
+
   // support multiple files: `files` may be a FileList or array
   // Removed unused handleFileUpload function
 
@@ -241,31 +281,28 @@ export default function PatientProfile() {
 
   return (
     <Layout>
-      <div className="w-full bg-white rounded-lg shadow-sm p-6 sm:p-8 mx-auto">
+      <div className="max-w-3xl w-full bg-white rounded-lg shadow-sm p-6 sm:p-8 mx-auto">
         <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-xl font-semibold text-gray-800">Patient Details</h2>
-            <div className="text-sm text-gray-600 mt-1">{data?.details?.name ?? '—'}{data?.details?.dob ? ` · ${computeAgeFromDob(data.details.dob)} yrs` : ''}</div>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate(`/doctor/dashboard?docid=${docid}`)}
+              className="px-3 py-2 bg-gray-100 rounded hover:bg-gray-200 text-gray-700 font-medium"
+              aria-label="Back"
+            >
+              &larr;
+            </button>
+            <div>
+              <h2 className="text-xl font-semibold text-gray-800">Patient Details</h2>
+              <div className="text-sm text-gray-600 mt-1">{data?.details?.name ?? '—'}{data?.details?.dob ? ` · ${computeAgeFromDob(data.details.dob)} yrs` : ''}</div>
+            </div>
           </div>
-          <button
-            onClick={() => navigate(`/doctor/dashboard?docid=${docid}`)}
-            className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 text-gray-700 font-medium"
-          >
-            &larr; Back to Dashboard
-          </button>
         </div>
         <div className="grid grid-cols-1 gap-6">
           {/* Left: Details (full width) */}
           <div className="space-y-4">
-            <div className="flex items-start justify-between">
-                <div>
-                  <h2 className="text-xl font-semibold text-gray-800">Patient Details</h2>
-                  <div className="text-sm text-gray-600 mt-1">{data?.details?.name ?? '—'}{data?.details?.dob ? ` · ${computeAgeFromDob(data.details.dob)} yrs` : ''}</div>
-                </div>
-              <div className="flex items-center gap-2">
-                <button onClick={() => { setFormValues(data.details); alert('Reverted'); }} className="px-3 py-1 border rounded">Revert</button>
-                <button onClick={handleSaveAll} className="px-3 py-1 bg-cyan-600 text-white rounded">Save All</button>
-              </div>
+            <div className="flex items-start justify-end gap-2">
+              <button onClick={() => { setFormValues(data.details); alert('Reverted'); }} className="px-3 py-1 border rounded">Revert</button>
+              <button onClick={handleSaveAll} className="px-3 py-1 bg-cyan-600 text-white rounded">Save All</button>
             </div>
 
             <div className="space-y-3">
@@ -317,18 +354,36 @@ export default function PatientProfile() {
                                 )}
                               </div>
                             ) : (
-                              <input
-                                type={type || 'text'}
-                                value={type === 'date' ? (value ? new Date(value).toISOString().substring(0,10) : '') : value}
-                                onChange={(e) => handleInputChange(key, e.target.value)}
-                                className="w-full sm:w-72 border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-cyan-300 text-black"
-                              />
+                              // Gender dropdown when editing
+                              key === 'gender' ? (
+                                <select
+                                  value={String(formValues.gender ?? '')}
+                                  onChange={(e) => handleInputChange(key, e.target.value)}
+                                  className="w-full sm:w-72 border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-cyan-300 text-black"
+                                >
+                                  <option value="">Select gender</option>
+                                  <option value="Male">Male</option>
+                                  <option value="Female">Female</option>
+                                  <option value="Prefer not to say">Prefer not to say</option>
+                                </select>
+                              ) : (
+                                <input
+                                  type={type || 'text'}
+                                  value={type === 'date' ? (value ? new Date(value).toISOString().substring(0,10) : '') : value}
+                                  onChange={(e) => handleInputChange(key, e.target.value)}
+                                  className="w-full sm:w-72 border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-cyan-300 text-black"
+                                />
+                              )
                             )}
                           </div>
                         ) : (
                           <div className="mt-1 text-gray-800">
                             {type === 'date'
-                              ? (value ? `${new Date(String(value)).toLocaleDateString()}${value ? ` · ${computeAgeFromDob(String(value))} yrs` : ''}` : 'Not provided')
+                              ? (
+                                value
+                                  ? `${new Date(String(value)).toLocaleDateString()}${key === 'dob' ? ` · ${computeAgeFromDob(String(value))} yrs` : ''}`
+                                  : 'Not provided'
+                              )
                               : (value || 'Not provided')}
                           </div>
                         )}
@@ -418,13 +473,41 @@ export default function PatientProfile() {
             {imageFields.map(({ label, key }) => {
               // slugify label for URL
               const slug = String(label).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+              const urls = getUrlsForKey(key);
+              const thumb = urls[0] ?? '';
               return (
-                <a key={key} href={`/investigation/${slug}?patid=${patid}&docid=${docid}`} className="block bg-gray-50 p-4 rounded-md shadow-sm text-center hover:shadow-md transition">
-                  <div className="w-full h-28 mb-3 flex items-center justify-center rounded-md bg-gradient-to-br from-white/30 to-white/10 border border-dashed border-gray-200">
-                    <div className="text-sm text-gray-500">{label}</div>
+                <div key={key} className="bg-gray-50 p-3 rounded-md shadow-sm text-center hover:shadow-md transition flex flex-col">
+                  <Link to={`/investigation/${slug}?patid=${patid}&docid=${docid}`} className="block flex-1 mb-3">
+                    <div className="w-full h-28 mb-3 flex items-center justify-center rounded-md bg-gradient-to-br from-white/30 to-white/10 border border-dashed border-gray-200 overflow-hidden">
+                      {thumb ? (
+                        <img src={thumb} alt={label} className="object-cover w-full h-full" />
+                      ) : (
+                        <div className="text-sm text-gray-500 p-4">{label}</div>
+                      )}
+                    </div>
+                    <div className="text-sm font-medium text-gray-700">{label}</div>
+                  </Link>
+
+                  <div className="flex items-center justify-center gap-2">
+                    <label className="px-3 py-1 bg-white border rounded cursor-pointer text-sm">
+                      {uploading[String(key)] ? 'Uploading...' : 'Upload'}
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(key, e.target.files)} />
+                    </label>
+                    <button
+                      onClick={() => handleDeleteFile(key)}
+                      disabled={!thumb}
+                      className="px-3 py-1 border rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Delete
+                    </button>
+                    <button
+                      onClick={() => { if (urls.length > 0) { setPreviewField(key); setPreviewOpen(true); setPreviewIndex(0); } else alert('No image'); }}
+                      className="px-3 py-1 border rounded text-sm"
+                    >
+                      Preview
+                    </button>
                   </div>
-                  <div className="text-sm font-medium text-gray-700">{label}</div>
-                </a>
+                </div>
               );
             })}
           </div>
