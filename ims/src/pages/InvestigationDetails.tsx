@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { PatientInfo, uploadFile } from '../api/Patientinfo';
@@ -28,7 +28,7 @@ export default function InvestigationDetails() {
   const patid = q.get('patid') || '';
 
   const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<Record<string, unknown> | null>(null);
   const [sectionImages, setSectionImages] = useState<Record<string, string[]>>({});
   const [preview, setPreview] = useState<{ url: string; open: boolean } | null>(null);
 
@@ -50,7 +50,8 @@ export default function InvestigationDetails() {
         for (const s of SECTIONS) {
           const prop = `${baseKey}${s === 'follow-up' ? 'FollowUp' : s.charAt(0).toUpperCase() + s.slice(1)}Urls`;
           // try camel or snake
-          const v = (patient?.details as any)?.[prop] ?? (patient?.details as any)?.[`${baseKey}_${s}Urls`] ?? null;
+          const details = patient?.details as Record<string, unknown> | undefined;
+          const v = details?.[prop] ?? details?.[`${baseKey}_${s}Urls`] ?? null;
           if (Array.isArray(v)) initial[s] = v.filter(Boolean);
           else initial[s] = [];
         }
@@ -72,10 +73,10 @@ export default function InvestigationDetails() {
         // uploadFile(file, patid, key)
         const key = `${baseKey}_${section}`; // server-side handler may use this
         const res = await uploadFile(f, patid, key);
-        if (res && (res as any).pluralArray) {
-          setSectionImages((prev) => ({ ...prev, [section]: (res as any).pluralArray.filter(Boolean) }));
-        } else if (res && (res as any).url) {
-          setSectionImages((prev) => ({ ...prev, [section]: [...(prev[section] || []), (res as any).url] }));
+        if (res && typeof res === 'object' && 'pluralArray' in res && Array.isArray((res as { pluralArray?: unknown[] }).pluralArray)) {
+          setSectionImages((prev) => ({ ...prev, [section]: ((res as { pluralArray?: unknown[] }).pluralArray ?? []).filter((x): x is string => typeof x === 'string' && x.length > 0) }));
+        } else if (res && typeof res === 'object' && 'url' in res) {
+          setSectionImages((prev) => ({ ...prev, [section]: [...(prev[section] || []), typeof (res as { url?: unknown }).url === 'string' ? (res as { url?: string }).url ?? '' : ''] }));
         }
       }
     } catch (err) {
@@ -94,7 +95,7 @@ export default function InvestigationDetails() {
       <div className="max-w-4xl mx-auto p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-semibold">{title}</h2>
-          <div className="text-sm text-gray-600">Patient: {data?.name ?? '—'}</div>
+          <div className="text-sm text-gray-600">Patient: {typeof data?.name === 'string' ? data.name : '—'}</div>
         </div>
 
         <div className="grid gap-6">

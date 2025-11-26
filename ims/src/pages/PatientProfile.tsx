@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { PatientInfo, updatePatientInfo, uploadFile } from "../api/Patientinfo";
+import { PatientInfo, updatePatientInfo } from "../api/Patientinfo";
 import Layout from "../components/Layout";
 
 type AdherenceEntry = {
@@ -67,7 +67,7 @@ export default function PatientProfile() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<{ [key: string]: boolean }>({});
   const [formValues, setFormValues] = useState<Partial<PatientDetails>>({});
-  const [uploadStatus, setUploadStatus] = useState<{ [key: string]: string }>({});
+  // Removed unused uploadStatus state
   const [previewOpen, setPreviewOpen] = useState(false);
   // which field is being previewed and which image index
   const [previewField, setPreviewField] = useState<keyof PatientDetails | null>(null);
@@ -144,7 +144,7 @@ export default function PatientProfile() {
     { label: "Chief Complaint", key: "chiefComplaint" },
     { label: "Past Medical History", key: "pastMedicalHistory" },
     { label: "Past Dental History", key: "pastDentalHistory" },
-    { label: "Final Diagnosis", key: "finalDiagnosis" },
+    // Removed 'Final Diagnosis' as it's not a key of PatientDetails
     { label: "Treatment Plan", key: "treatmentPlan" },
     { label: "Phase", key: "phase" },
     { label: "Type of Appliance", key: "typeOfAppliance" },
@@ -212,62 +212,7 @@ export default function PatientProfile() {
   };
 
   // support multiple files: `files` may be a FileList or array
-  const handleFileUpload = async (key: keyof PatientDetails, files: FileList | File[]) => {
-    if (!patid) return;
-    const fileArray = Array.from(files as FileList);
-    if (fileArray.length === 0) return;
-
-    setUploadStatus((prev) => ({ ...prev, [key]: `Uploading 0/${fileArray.length}...` }));
-
-    // current urls (append to these) - but prefer server-returned array when available
-    const existing = getUrlsForKey(key);
-    const newUrls: string[] = [];
-    let serverReturnedArray: string[] | null = null;
-
-    try {
-      for (let i = 0; i < fileArray.length; i++) {
-        const f = fileArray[i];
-        setUploadStatus((prev) => ({ ...prev, [key]: `Uploading ${i + 1}/${fileArray.length}...` }));
-        const uploadData = await uploadFile(f, patid, key as string);
-        // the server upload handler returns { url, patient, pluralKey, pluralArray }
-        if (uploadData) {
-          const ud = uploadData as unknown as { url?: string; pluralArray?: string[] };
-          if (ud.pluralArray && Array.isArray(ud.pluralArray)) {
-            serverReturnedArray = ud.pluralArray as string[];
-          }
-          if (ud.url) newUrls.push(ud.url);
-        }
-      }
-
-      // if server returned the updated plural array, use it (safer)
-      const pluralKey = (String(key).endsWith("Url") ? String(key).replace(/Url$/, "Urls") : String(key) + "s") as keyof PatientDetails;
-      if (serverReturnedArray) {
-        // update local formValues using the server canonical array
-        setFormValues((prev) => ({ ...prev, [pluralKey]: serverReturnedArray }));
-        setUploadStatus((prev) => ({ ...prev, [key]: `Upload successful ✅ (${serverReturnedArray?.length ?? 0})` }));
-      } else {
-        // fallback: merge existing + newly uploaded urls and persist
-        const merged = [...existing, ...newUrls];
-        const success = await updatePatientInfo(patid, { [pluralKey]: merged });
-        if (success) {
-          setFormValues((prev) => ({ ...prev, [pluralKey]: merged }));
-          setUploadStatus((prev) => ({ ...prev, [key]: `Upload successful ✅ (${newUrls.length})` }));
-        } else {
-          // try singular fallback
-          await updatePatientInfo(patid, { [key]: merged[merged.length - 1] ?? null });
-          setFormValues((prev) => ({ ...prev, [key]: merged[merged.length - 1] ?? null }));
-          setUploadStatus((prev) => ({ ...prev, [key]: `Upload partial ✅` }));
-        }
-      }
-    } catch (err) {
-      console.error("upload error:", err);
-      setUploadStatus((prev) => ({ ...prev, [key]: "Error uploading ❌" }));
-    } finally {
-      setTimeout(() => {
-        setUploadStatus((prev) => ({ ...prev, [key]: "" }));
-      }, 3000);
-    }
-  };
+  // Removed unused handleFileUpload function
 
   if (loading) return <p className="text-center mt-10 text-gray-700">Loading...</p>;
   if (!data) return <p className="text-center mt-10 text-gray-700">No data</p>;
@@ -383,7 +328,7 @@ export default function PatientProfile() {
                         ) : (
                           <div className="mt-1 text-gray-800">
                             {type === 'date'
-                              ? (value ? `${new Date(value).toLocaleDateString()}${value ? ` · ${computeAgeFromDob(value)} yrs` : ''}` : 'Not provided')
+                              ? (value ? `${new Date(String(value)).toLocaleDateString()}${value ? ` · ${computeAgeFromDob(String(value))} yrs` : ''}` : 'Not provided')
                               : (value || 'Not provided')}
                           </div>
                         )}
