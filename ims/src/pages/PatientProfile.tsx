@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
-import { PatientInfo, updatePatientInfo, uploadFile } from "../api/Patientinfo";
+import { PatientInfo, updatePatientInfo } from "../api/Patientinfo";
 import Layout from "../components/Layout";
 
 type AdherenceEntry = {
@@ -73,7 +73,6 @@ export default function PatientProfile() {
   const [previewField, setPreviewField] = useState<keyof PatientDetails | null>(null);
   const [previewIndex, setPreviewIndex] = useState<number>(0);
   const [otherAppliance, setOtherAppliance] = useState<string>("");
-  const [uploading, setUploading] = useState<{ [k: string]: boolean }>({});
 
   const applianceOptions: string[] = useMemo(
     () => [
@@ -212,44 +211,7 @@ export default function PatientProfile() {
     }
   };
 
-  const handleFileUpload = async (field: keyof PatientDetails, files: FileList | null) => {
-    if (!patid) return;
-    if (!files || files.length === 0) return;
-    const file = files[0];
-    try {
-      setUploading((s) => ({ ...s, [String(field)]: true }));
-      const res = await uploadFile(file, patid, String(field));
-      if (res && res.url) {
-        const success = await updatePatientInfo(patid, { [field]: res.url } as unknown as Partial<PatientDetails>);
-        if (success) {
-          setFormValues((prev) => ({ ...prev, [field]: res.url }));
-          alert('Uploaded');
-        } else alert('Failed to save uploaded file');
-      } else {
-        alert('Upload failed');
-      }
-    } catch (err) {
-      console.error('upload failed', err);
-      alert('Upload error');
-    } finally {
-      setUploading((s) => ({ ...s, [String(field)]: false }));
-    }
-  };
-
-  const handleDeleteFile = async (field: keyof PatientDetails) => {
-    if (!patid) return;
-    if (!confirm('Delete this file?')) return;
-    try {
-      const success = await updatePatientInfo(patid, { [field]: null } as unknown as Partial<PatientDetails>);
-      if (success) {
-        setFormValues((prev) => ({ ...prev, [field]: null }));
-        alert('Deleted');
-      } else alert('Failed to delete');
-    } catch (err) {
-      console.error('delete error', err);
-      alert('Delete failed');
-    }
-  };
+  // file upload and delete are handled on the Investigation detail page.
 
   // support multiple files: `files` may be a FileList or array
   // Removed unused handleFileUpload function
@@ -305,79 +267,84 @@ export default function PatientProfile() {
               <button onClick={handleSaveAll} className="px-3 py-1 bg-cyan-600 text-white rounded">Save All</button>
             </div>
 
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {editableFields.map(({ label, key, type }) => {
                 const isEditing = editing[key];
                 const value = formatValue(formValues[key] as string | number | null | undefined);
-
                 return (
-                  <div key={key} className="bg-gray-50 p-3 rounded-md shadow-sm">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                      <div className="flex-1">
+                  <div key={key} className="bg-gray-50 p-3 rounded-md shadow-sm hover:shadow-md transition cursor-default">
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center justify-between">
                         <div className="font-semibold text-gray-700">{label}</div>
+                        <div>
+                          {isEditing ? (
+                            <>
+                              <button onClick={() => handleSave(key)} className="px-2 py-1 bg-green-500 text-white rounded text-sm hover:opacity-90">Save</button>
+                              <button onClick={() => handleEditToggle(key)} className="ml-2 px-2 py-1 border rounded text-sm hover:bg-gray-100">Cancel</button>
+                            </>
+                          ) : (
+                            <button onClick={() => handleEditToggle(key)} className="px-2 py-1 text-cyan-600 text-sm hover:underline hover:cursor-pointer">Edit</button>
+                          )}
+                        </div>
+                      </div>
+
+                      <div>
                         {isEditing ? (
-                          <div className="mt-2 flex items-center gap-2">
-                            {key === 'typeOfAppliance' ? (
-                              <div className="w-full sm:w-72">
-                                <select
-                                  value={applianceOptions.includes(String(formValues.typeOfAppliance ?? "")) ? String(formValues.typeOfAppliance ?? "") : (formValues.typeOfAppliance ? 'Others' : '')}
+                          key === 'typeOfAppliance' ? (
+                            <div>
+                              <select
+                                value={applianceOptions.includes(String(formValues.typeOfAppliance ?? "")) ? String(formValues.typeOfAppliance ?? "") : (formValues.typeOfAppliance ? 'Others' : '')}
+                                onChange={(e) => {
+                                  const v = e.target.value;
+                                  if (v === 'Others') {
+                                    setFormValues((prev) => ({ ...prev, typeOfAppliance: otherAppliance || '' }));
+                                  } else {
+                                    setFormValues((prev) => ({ ...prev, typeOfAppliance: v }));
+                                    setOtherAppliance("");
+                                  }
+                                }}
+                                className="w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-cyan-300 text-black"
+                              >
+                                <option value="">Select appliance</option>
+                                {applianceOptions.map((opt) => (
+                                  <option key={opt} value={opt}>{opt}</option>
+                                ))}
+                              </select>
+                              {(!applianceOptions.includes(String(formValues.typeOfAppliance ?? "")) || String(formValues.typeOfAppliance) === 'Others') && (
+                                <input
+                                  type="text"
+                                  placeholder="Describe other appliance"
+                                  value={otherAppliance}
                                   onChange={(e) => {
                                     const v = e.target.value;
-                                    if (v === 'Others') {
-                                      setFormValues((prev) => ({ ...prev, typeOfAppliance: otherAppliance || '' }));
-                                    } else {
-                                      setFormValues((prev) => ({ ...prev, typeOfAppliance: v }));
-                                      setOtherAppliance("");
-                                    }
+                                    setOtherAppliance(v);
+                                    setFormValues((prev) => ({ ...prev, typeOfAppliance: v }));
                                   }}
-                                  className="w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-cyan-300 text-black"
-                                >
-                                  <option value="">Select appliance</option>
-                                  {applianceOptions.map((opt) => (
-                                    <option key={opt} value={opt}>{opt}</option>
-                                  ))}
-                                </select>
-
-                                {/* If user chooses Others, show editable input */}
-                                {(!applianceOptions.includes(String(formValues.typeOfAppliance ?? "")) || String(formValues.typeOfAppliance) === 'Others') && (
-                                  <input
-                                    type="text"
-                                    placeholder="Describe other appliance"
-                                    value={otherAppliance}
-                                    onChange={(e) => {
-                                      const v = e.target.value;
-                                      setOtherAppliance(v);
-                                      setFormValues((prev) => ({ ...prev, typeOfAppliance: v }));
-                                    }}
-                                    className="mt-2 w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-cyan-300 text-black"
-                                  />
-                                )}
-                              </div>
-                            ) : (
-                              // Gender dropdown when editing
-                              key === 'gender' ? (
-                                <select
-                                  value={String(formValues.gender ?? '')}
-                                  onChange={(e) => handleInputChange(key, e.target.value)}
-                                  className="w-full sm:w-72 border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-cyan-300 text-black"
-                                >
-                                  <option value="">Select gender</option>
-                                  <option value="Male">Male</option>
-                                  <option value="Female">Female</option>
-                                  <option value="Prefer not to say">Prefer not to say</option>
-                                </select>
-                              ) : (
-                                <input
-                                  type={type || 'text'}
-                                  value={type === 'date' ? (value ? new Date(value).toISOString().substring(0,10) : '') : value}
-                                  onChange={(e) => handleInputChange(key, e.target.value)}
-                                  className="w-full sm:w-72 border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-cyan-300 text-black"
+                                  className="mt-2 w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-cyan-300 text-black"
                                 />
-                              )
-                            )}
-                          </div>
+                              )}
+                            </div>
+                          ) : key === 'gender' ? (
+                            <select
+                              value={String(formValues.gender ?? '')}
+                              onChange={(e) => handleInputChange(key, e.target.value)}
+                              className="w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-cyan-300 text-black"
+                            >
+                              <option value="">Select gender</option>
+                              <option value="Male">Male</option>
+                              <option value="Female">Female</option>
+                              <option value="Prefer not to say">Prefer not to say</option>
+                            </select>
+                          ) : (
+                            <input
+                              type={type || 'text'}
+                              value={type === 'date' ? (value ? new Date(value).toISOString().substring(0,10) : '') : value}
+                              onChange={(e) => handleInputChange(key, e.target.value)}
+                              className="w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-cyan-300 text-black"
+                            />
+                          )
                         ) : (
-                          <div className="mt-1 text-gray-800">
+                          <div className="text-gray-800">
                             {type === 'date'
                               ? (
                                 value
@@ -386,17 +353,6 @@ export default function PatientProfile() {
                               )
                               : (value || 'Not provided')}
                           </div>
-                        )}
-                      </div>
-
-                      <div className="flex-shrink-0 mt-2 sm:mt-0 flex items-center gap-2">
-                        {isEditing ? (
-                          <>
-                            <button onClick={() => handleSave(key)} className="px-3 py-1 bg-green-500 text-white rounded">Save</button>
-                            <button onClick={() => handleEditToggle(key)} className="px-3 py-1 border rounded">Cancel</button>
-                          </>
-                        ) : (
-                          <button onClick={() => handleEditToggle(key)} className="px-3 py-1 text-cyan-600">Edit</button>
                         )}
                       </div>
                     </div>
@@ -488,25 +444,7 @@ export default function PatientProfile() {
                     <div className="text-sm font-medium text-gray-700">{label}</div>
                   </Link>
 
-                  <div className="flex items-center justify-center gap-2">
-                    <label className="px-3 py-1 bg-white border rounded cursor-pointer text-sm">
-                      {uploading[String(key)] ? 'Uploading...' : 'Upload'}
-                      <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(key, e.target.files)} />
-                    </label>
-                    <button
-                      onClick={() => handleDeleteFile(key)}
-                      disabled={!thumb}
-                      className="px-3 py-1 border rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Delete
-                    </button>
-                    <button
-                      onClick={() => { if (urls.length > 0) { setPreviewField(key); setPreviewOpen(true); setPreviewIndex(0); } else alert('No image'); }}
-                      className="px-3 py-1 border rounded text-sm"
-                    >
-                      Preview
-                    </button>
-                  </div>
+                  
                 </div>
               );
             })}
