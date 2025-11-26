@@ -1,4 +1,6 @@
-require("dotenv").config();
+const path = require('path');
+// Force Node to look for .env in the CURRENT folder (server/), not root
+require("dotenv").config({ path: path.resolve(__dirname, './.env') });
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
