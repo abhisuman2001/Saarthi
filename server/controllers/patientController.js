@@ -1,3 +1,19 @@
+exports.deletePatient = async (req, res) => {
+  const { patid } = req.params;
+  if (!patid) return res.status(400).json({ error: "Patient ID required" });
+  try {
+    // Remove patient from all doctors' patients arrays
+    await require("../models/Doctor").updateMany({}, { $pull: { patients: patid } });
+    // Delete patient document
+    await require("../models/Patient").findByIdAndDelete(patid);
+    // Optionally, delete user with this patientId
+    await require("../models/User").deleteMany({ patientId: patid });
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Delete patient error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+};
 const { sendSMS } = require("../sms");
 const { sendWhatsAppMessage } = require("../whatsappClient");
 const Doctor = require("../models/Doctor");
@@ -43,9 +59,22 @@ exports.addPatient = async (req, res) => {
     user.patientId = patient._id;
     await user.save();
 
-    // Link patient to doctor
-    await Doctor.findByIdAndUpdate(doctorId, { $push: { patients: patient._id } });
-    console.log("Linked patient to doctor");
+    // Link patient to doctor (use $addToSet to avoid duplicates)
+    const updatedDoctor = await Doctor.findByIdAndUpdate(
+      doctorId,
+      { $addToSet: { patients: patient._id } },
+      { new: true }
+    );
+    // Ensure patient has correct doctorId
+    if (!patient.doctorId || patient.doctorId.toString() !== doctorId.toString()) {
+      patient.doctorId = doctorId;
+      await patient.save();
+    }
+    if (!updatedDoctor) {
+      console.warn(`Doctor ${doctorId} not found when linking patient ${patient._id}`);
+    } else {
+      console.log("Linked patient to doctor", { doctorId, patientId: patient._id });
+    }
     console.log({ user, patient });
     
     // 2. SEND SMS LOGIC HERE
@@ -65,7 +94,7 @@ exports.addPatient = async (req, res) => {
 
     // 3. SEND WHATSAPP LOGIC HERE
     try {
-      await sendWhatsAppMessage(contactNumber, "Welcome to OrthoSaarthi");
+      await sendWhatsAppMessage(contactNumber, `Welcome to ORTHO SAARTHI 🌟, ${patient.name}!\nA smart assistant designed to help you manage appliance reminders, track treatment progress, and stay effortlessly compliant.\nLet me know how I can assist you today!`);
       console.log(`WhatsApp sent to ${contactNumber}`);
     } catch (waError) {
       console.error("Failed to send WhatsApp:", waError.message);
@@ -286,6 +315,26 @@ exports.addAdherenceEntry = async (req, res) => {
 
     // Return saved patient and the newly added entry (last entry) for the client to read exact score + breakdown
     const savedEntry = patient.adherenceHistory && patient.adherenceHistory.length > 0 ? patient.adherenceHistory[patient.adherenceHistory.length - 1] : null;
+
+    // WhatsApp custom message on submission
+    try {
+      const patientName = patient.name || "Patient";
+      let hours = null;
+      if (typeof duration === 'string') {
+        if (duration.includes('>')) hours = 18;
+        else if (duration.includes('14-18')) hours = 16;
+        else if (duration.includes('10-14')) hours = 12;
+        else if (duration.includes('6-10')) hours = 8;
+        else if (duration.includes('<6')) hours = 4;
+      } else if (typeof duration === 'number') {
+        hours = duration;
+      }
+      let message = `Hi ${patientName}, you reported wearing your appliance for ${hours || 'N/A'} hours today. Keep it up for best results!`;
+      await sendWhatsAppMessage(patient.contactNumber, message);
+    } catch (waError) {
+      console.error("Failed to send WhatsApp daily message:", waError.message);
+    }
+
     res.json({ message: "Adherence entry added", patient, entry: savedEntry });
   } catch (err) {
     console.error(err);
@@ -409,7 +458,7 @@ exports.getPatientsByDoctor = async (req, res) => {
     // Find doctor and populate patients
     const doctor = await Doctor.findById(docid).populate({
       path: "patients",
-      select: "name contactNumber", // only fetch name and contactNumber
+      select: "name contactNumber dob age", // include dob/age so UI can show patient's age
     });
 
     if (!doctor) return res.status(404).json({ error: "Doctor not found" });

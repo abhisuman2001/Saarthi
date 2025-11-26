@@ -1,3 +1,16 @@
+export const deletePatient = async (patid: string): Promise<boolean> => {
+  try {
+    const backend = import.meta.env.VITE_BACKEND || "http://localhost:5000";
+    const res = await fetch(`${backend}/api/patientinfo/delete/${patid}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) throw new Error("Failed to delete patient");
+    return true;
+  } catch (err) {
+    console.error("Error deleting patient:", err);
+    return false;
+  }
+};
 // api/Patientinfo.ts
 export interface PatientInfo {
   name: string;

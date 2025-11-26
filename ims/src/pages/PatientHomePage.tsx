@@ -489,7 +489,12 @@ export default function PatientHomepage() {
                 </div>
               </div>
               <div className="mt-3 grid grid-cols-2 gap-2 text-sm text-gray-700">
-                <div><span className="font-medium">DOB:</span> {details?.dob ? new Date(details.dob).toLocaleDateString() : '—'}</div>
+                <div>
+                  <span className="font-medium">DOB:</span> {details?.dob ? new Date(details.dob).toLocaleDateString() : '—'}
+                </div>
+                <div>
+                  <span className="font-medium">Age:</span> {details?.dob ? (function(d){ const dt = new Date(d); if(isNaN(dt.getTime())) return '—'; const diff = Date.now() - dt.getTime(); return Math.floor(diff / (1000*60*60*24*365.25)) + ' yrs'; })(details.dob) : '—'}
+                </div>
                 <div><span className="font-medium">Gender:</span> {details?.gender || '—'}</div>
                 <div><span className="font-medium">Next appt:</span> {details?.nextAppointment ? new Date(details.nextAppointment).toLocaleDateString() : '—'}</div>
                 <div><span className="font-medium">Start date:</span> {details?.startDate ? new Date(details.startDate).toLocaleDateString() : '—'}</div>

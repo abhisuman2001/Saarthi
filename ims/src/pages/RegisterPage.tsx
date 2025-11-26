@@ -11,6 +11,8 @@ export default function RegisterPage() {
   const [contactNumber, setContactNumber] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [confirmPassword, setConfirmPassword] = useState<string>("");
+  const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -75,22 +77,75 @@ export default function RegisterPage() {
                   className="form-input"
                   required
                 />
-                <input
-                  type="password"
-                  placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="form-input"
-                  required
-                />
-                <input
-                  type="password"
-                  placeholder="Confirm Password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="form-input"
-                  required
-                />
+                <div className="input-with-icon">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="form-input"
+                    required
+                  />
+                  <button
+                    type="button"
+                    title="Press and hold to view password"
+                    aria-label="Press and hold to view password"
+                    onMouseDown={() => setShowPassword(true)}
+                    onMouseUp={() => setShowPassword(false)}
+                    onMouseLeave={() => setShowPassword(false)}
+                    onTouchStart={() => setShowPassword(true)}
+                    onTouchEnd={() => setShowPassword(false)}
+                    className="icon-btn"
+                  >
+                      {showPassword ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#374151" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M2.036 12.322C3.429 7.969 7.199 5 12 5c4.801 0 8.571 2.969 9.964 7.322a1.012 1.012 0 010 .356C20.571 16.031 16.801 19 12 19c-4.801 0-8.571-2.969-9.964-7.322a1.012 1.012 0 010-.356z" />
+                          <circle cx="12" cy="12" r="3" />
+                        </svg>
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#374151" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M3 3l18 18" />
+                          <path d="M6.06 6.06C7.81 4.88 9.83 4 12 4c4.8 0 8.57 2.97 9.96 7.32a1 1 0 010 .36C20.57 16.03 16.8 19 12 19c-2.17 0-4.19-.88-6-2.06" />
+                          <path d="M10.94 10.94A3 3 0 0114.06 14.06" />
+                        </svg>
+                      )}
+                  </button>
+                </div>
+
+                <div className="input-with-icon">
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder="Confirm Password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="form-input"
+                    required
+                  />
+                  <button
+                    type="button"
+                    title="Press and hold to view password"
+                    aria-label="Press and hold to view confirm password"
+                    onMouseDown={() => setShowConfirmPassword(true)}
+                    onMouseUp={() => setShowConfirmPassword(false)}
+                    onMouseLeave={() => setShowConfirmPassword(false)}
+                    onTouchStart={() => setShowConfirmPassword(true)}
+                    onTouchEnd={() => setShowConfirmPassword(false)}
+                    className="icon-btn"
+                  >
+                    {showConfirmPassword ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#374151" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M2.036 12.322C3.429 7.969 7.199 5 12 5c4.801 0 8.571 2.969 9.964 7.322a1.012 1.012 0 010 .356C20.571 16.031 16.801 19 12 19c-4.801 0-8.571-2.969-9.964-7.322a1.012 1.012 0 010-.356z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#374151" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M3 3l18 18" />
+                        <path d="M6.06 6.06C7.81 4.88 9.83 4 12 4c4.8 0 8.57 2.97 9.96 7.32a1 1 0 010 .36C20.57 16.03 16.8 19 12 19c-2.17 0-4.19-.88-6-2.06" />
+                        <path d="M10.94 10.94A3 3 0 0114.06 14.06" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
 
                 <button
                   type="submit"

@@ -4,6 +4,7 @@ import DoctorDashboard from './pages/DoctorDashboard';
 import DoctorProfile from './pages/DoctorProfile';
 import PatientHomepage from './pages/PatientHomePage'; // Make sure this exists
 import PatientProfile from './pages/PatientProfile';
+import InvestigationDetails from './pages/InvestigationDetails';
 import AddPatient from './pages/AddPatient';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage'; // If you have a RegisterPage
@@ -18,6 +19,7 @@ function App() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="patient/homepage" element={<PatientHomepage />} />
+          <Route path="investigation/:slug" element={<InvestigationDetails />} />
           <Route path="doctor/profile" element={<PatientProfile />} />
           <Route path="doctor/me" element={<DoctorProfile />} />
           <Route path="doctor/dashboard" element={<DoctorDashboard />} />

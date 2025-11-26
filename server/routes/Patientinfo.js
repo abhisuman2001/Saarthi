@@ -14,4 +14,5 @@ router.post("/uploadPatientFile/:patid", upload.single("file"), patientControlle
 router.patch("/updateInfo/:patid", patientController.updatePatientInfo);
 router.get("/getPatientsByDoctor/:docid", patientController.getPatientsByDoctor);
 router.post("/addPatient", patientController.addPatient);
+router.delete("/delete/:patid", patientController.deletePatient);
 module.exports = router;

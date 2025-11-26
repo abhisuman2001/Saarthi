@@ -11,6 +11,7 @@ type Patient = {
   _id: string;
   name: string | null;
   contactNumber: string | null;
+  dob?: string | null;
 };
 
 type Doctor = {
@@ -22,6 +23,22 @@ type Doctor = {
 };
 
 export default function DoctorDashboard() {
+    // Back button handler
+    const handleBack = () => {
+      navigate(-1);
+    };
+
+    // Delete patient handler
+    const handleDeletePatient = async (patid: string) => {
+      if (!window.confirm("Are you sure you want to delete this patient?")) return;
+      const { deletePatient } = await import("../api/Patientinfo");
+      const success = await deletePatient(patid);
+      if (success) {
+        setPatients((prev) => prev.filter((p) => p._id !== patid));
+      } else {
+        alert("Failed to delete patient");
+      }
+    };
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const docid = searchParams.get("docid") || "";
@@ -105,6 +122,7 @@ export default function DoctorDashboard() {
 
   return (
     <div className="min-h-screen bg-[#f5f5f5] pt-20 pb-12">
+      <button onClick={handleBack} className="mb-4 px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">&larr; Back</button>
       <div className="max-w-6xl mx-auto px-4">
         {/* App bar */}
         <header className="mt-6 mb-6 bg-white rounded-lg shadow-sm p-4 flex items-center justify-between">
@@ -173,20 +191,35 @@ export default function DoctorDashboard() {
                       exit={{ opacity: 0, y: 6 }}
                       whileHover={{ scale: 1.02 }}
                       transition={{ duration: 0.18 }}
-                      onClick={() => navigate(`/doctor/profile?patid=${p._id}&docid=${docid}`)}
-                      className="flex items-center justify-between p-4 rounded-lg bg-white border border-transparent hover:border-gray-200 shadow-sm hover:shadow-md cursor-pointer"
+                      className="flex items-center justify-between p-4 rounded-lg bg-white border border-transparent hover:border-gray-200 shadow-sm hover:shadow-md"
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate(`/doctor/profile?patid=${p._id}&docid=${docid}`)}>
                         <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-700 font-medium">{p.name ? p.name.charAt(0).toUpperCase() : "P"}</div>
                         <div>
                           <div className="font-medium text-gray-900">{p.name || "Unnamed"}</div>
-                          <div className="text-sm text-gray-500">{p.contactNumber || "-"}</div>
+                              <div className="text-sm text-gray-500">
+                                {p.contactNumber || "-"}
+                                {p.dob && (
+                                  <span>
+                                    {' '}·{' '}
+                                    {(() => {
+                                      const d = new Date(p.dob as string);
+                                      if (isNaN(d.getTime())) return '-';
+                                      const diff = Date.now() - d.getTime();
+                                      return Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25)) + ' yrs';
+                                    })()}
+                                  </span>
+                                )}
+                              </div>
                         </div>
                       </div>
-
                       <div className="flex items-center gap-3 text-gray-400">
                         <span className="text-sm">View</span>
                         <ChevronRight />
+                        <button
+                          className="ml-4 px-3 py-1 bg-red-100 text-red-600 rounded hover:bg-red-200"
+                          onClick={() => handleDeletePatient(p._id)}
+                        >Delete</button>
                       </div>
                     </motion.div>
                   ))}

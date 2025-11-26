@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { PatientInfo, updatePatientInfo, uploadFile } from "../api/Patientinfo";
 import Layout from "../components/Layout";
 
@@ -58,6 +58,7 @@ export interface PatientData {
 
 export default function PatientProfile() {
   const location = useLocation();
+  const navigate = useNavigate();
   const searchParams = new URLSearchParams(location.search);
   const patid = searchParams.get("patid") || "";
   const docid = searchParams.get("docid") || "";
@@ -143,7 +144,7 @@ export default function PatientProfile() {
     { label: "Chief Complaint", key: "chiefComplaint" },
     { label: "Past Medical History", key: "pastMedicalHistory" },
     { label: "Past Dental History", key: "pastDentalHistory" },
-    { label: "Final Diagnosis", key: "Diagnosis" },
+    { label: "Final Diagnosis", key: "finalDiagnosis" },
     { label: "Treatment Plan", key: "treatmentPlan" },
     { label: "Phase", key: "phase" },
     { label: "Type of Appliance", key: "typeOfAppliance" },
@@ -296,6 +297,18 @@ export default function PatientProfile() {
   return (
     <Layout>
       <div className="w-full bg-white rounded-lg shadow-sm p-6 sm:p-8 mx-auto">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-800">Patient Details</h2>
+            <div className="text-sm text-gray-600 mt-1">{data?.details?.name ?? '—'}{data?.details?.dob ? ` · ${computeAgeFromDob(data.details.dob)} yrs` : ''}</div>
+          </div>
+          <button
+            onClick={() => navigate(`/doctor/dashboard?docid=${docid}`)}
+            className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 text-gray-700 font-medium"
+          >
+            &larr; Back to Dashboard
+          </button>
+        </div>
         <div className="grid grid-cols-1 gap-6">
           {/* Left: Details (full width) */}
           <div className="space-y-4">
@@ -368,7 +381,11 @@ export default function PatientProfile() {
                             )}
                           </div>
                         ) : (
-                          <div className="mt-1 text-gray-800">{type === 'date' ? (value ? new Date(value).toLocaleDateString() : 'Not provided') : (value || 'Not provided')}</div>
+                          <div className="mt-1 text-gray-800">
+                            {type === 'date'
+                              ? (value ? `${new Date(value).toLocaleDateString()}${value ? ` · ${computeAgeFromDob(value)} yrs` : ''}` : 'Not provided')
+                              : (value || 'Not provided')}
+                          </div>
                         )}
                       </div>
 
@@ -449,60 +466,20 @@ export default function PatientProfile() {
           </div>
         )}
 
-        {/* Investigations (moved below details) */}
+        {/* Investigations (click to open detailed page with pre/mid/post/follow-up) */}
         <div className="mt-4">
           <h3 className="text-lg font-semibold text-gray-800 mb-3">Investigations</h3>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {imageFields.map(({ label, key }) => {
-              const urls = getUrlsForKey(key);
-              const thumb = urls[0] || "https://via.placeholder.com/300?text=No+Image";
-                return (
-                <div key={key} className="bg-gray-50 p-3 rounded-md shadow-sm flex flex-col items-center">
-                  <div className="w-28 h-28 overflow-hidden bg-gray-100 flex items-center justify-center mb-3 rounded-md">
-                    <button
-                      onClick={() => { if (urls.length) { setPreviewField(key); setPreviewIndex(0); setPreviewOpen(true); } }}
-                      className="w-full h-full block"
-                      aria-label={`Preview ${label}`}
-                    >
-                      <img
-                        loading="lazy"
-                        src={thumb}
-                        alt={label}
-                        className="object-cover w-full h-full"
-                        onError={(e) => { (e.target as HTMLImageElement).src = "https://via.placeholder.com/300?text=No+Image"; }}
-                      />
-                    </button>
+              // slugify label for URL
+              const slug = String(label).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+              return (
+                <a key={key} href={`/investigation/${slug}?patid=${patid}&docid=${docid}`} className="block bg-gray-50 p-4 rounded-md shadow-sm text-center hover:shadow-md transition">
+                  <div className="w-full h-28 mb-3 flex items-center justify-center rounded-md bg-gradient-to-br from-white/30 to-white/10 border border-dashed border-gray-200">
+                    <div className="text-sm text-gray-500">{label}</div>
                   </div>
-
-                  <label className="inline-block bg-cyan-600 text-white px-3 py-1 rounded cursor-pointer text-sm w-full text-center">
-                    Upload
-                    <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => { const files = e.target.files; if (files) handleFileUpload(key, files); }} />
-                  </label>
-
-                  {/* Thumbnails */}
-                  {urls.length > 0 && (
-                    <div className="w-full mt-2 flex gap-2 overflow-x-auto">
-                      {urls.map((u, idx) => (
-                        <button key={u + idx} onClick={() => { setPreviewField(key); setPreviewIndex(idx); setPreviewOpen(true); }} className="w-12 h-12 flex-shrink-0 rounded-md overflow-hidden border">
-                          <img loading="lazy" src={u} alt={`${label} ${idx+1}`} className="object-cover w-full h-full" onError={(e) => { (e.target as HTMLImageElement).src = "https://via.placeholder.com/100?text=No"; }} />
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* View button: transparent with cyan outline */}
-                  <button
-                    onClick={() => { if (urls.length) { setPreviewField(key); setPreviewIndex(0); setPreviewOpen(true); } }}
-                    className="w-full mt-2 px-3 py-1 rounded-md border border-cyan-600 text-cyan-600 bg-transparent"
-                  >
-                    View
-                  </button>
-
-                  {uploadStatus[key] && (
-                    <span className={`text-xs font-medium mt-2 ${uploadStatus[key]?.includes("successful") ? "text-green-600" : "text-red-600"}`}>{uploadStatus[key]}</span>
-                  )}
-                  <div className="text-sm font-medium text-gray-700 mt-2 text-center">{label}</div>
-                </div>
+                  <div className="text-sm font-medium text-gray-700">{label}</div>
+                </a>
               );
             })}
           </div>

@@ -6,6 +6,8 @@
   const PatientinfoRoutes = require("./routes/Patientinfo");
   const UserRoutes = require("./routes/User");
   const DoctorRoutes = require("./routes/Doctor");
+  // Start WhatsApp reminder cron
+  require("./reminderCron");
   const app = express();
   app.use(express.json());
 

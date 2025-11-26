@@ -17,6 +17,7 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const [contactNumber, setContactNumber] = useState<string>("");
   const [password, setPassword] = useState<string>("");
+  const [showPassword, setShowPassword] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,6 +25,8 @@ export default function LoginPage() {
   const [showChangePassword, setShowChangePassword] = useState(false); // toggles forgot-password UI
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState<boolean>(false);
+  const [showConfirmNewPassword, setShowConfirmNewPassword] = useState<boolean>(false);
   const [forgotStep, setForgotStep] = useState<'idle'|'otp'|'reset'>('idle');
   const [otp, setOtp] = useState<string[]>(new Array(6).fill(''));
   const [sendingOtp, setSendingOtp] = useState(false);
@@ -187,14 +190,40 @@ export default function LoginPage() {
 
                 <div>
                   <label className="block mb-1 text-sm font-medium text-gray-700">Password</label>
-                  <input
-                    type="password"
-                    placeholder="Enter your password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="form-input"
-                    required
-                  />
+                  <div className="input-with-icon">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Enter your password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="form-input"
+                      required
+                    />
+                    <button
+                      type="button"
+                      title="Press and hold to view password"
+                      aria-label="Press and hold to view password"
+                      onMouseDown={() => setShowPassword(true)}
+                      onMouseUp={() => setShowPassword(false)}
+                      onMouseLeave={() => setShowPassword(false)}
+                      onTouchStart={() => setShowPassword(true)}
+                      onTouchEnd={() => setShowPassword(false)}
+                      className="icon-btn"
+                    >
+                      {showPassword ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#374151" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M2.036 12.322C3.429 7.969 7.199 5 12 5c4.801 0 8.571 2.969 9.964 7.322a1.012 1.012 0 010 .356C20.571 16.031 16.801 19 12 19c-4.801 0-8.571-2.969-9.964-7.322a1.012 1.012 0 010-.356z" />
+                          <circle cx="12" cy="12" r="3" />
+                        </svg>
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#374151" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M3 3l18 18" />
+                          <path d="M6.06 6.06C7.81 4.88 9.83 4 12 4c4.8 0 8.57 2.97 9.96 7.32a1 1 0 010 .36C20.57 16.03 16.8 19 12 19c-2.17 0-4.19-.88-6-2.06" />
+                          <path d="M10.94 10.94A3 3 0 0114.06 14.06" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 <button type="submit" disabled={loading} className="primary-btn">
@@ -266,23 +295,75 @@ export default function LoginPage() {
                   <form onSubmit={handleResetPassword} className="mt-3 space-y-3">
                     <div>
                       <label className="block mb-1 text-sm font-medium text-gray-700">New Password</label>
-                      <input
-                        type="password"
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        className="form-input"
-                        required
-                      />
+                      <div className="input-with-icon">
+                        <input
+                          type={showNewPassword ? "text" : "password"}
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          className="form-input"
+                          required
+                        />
+                        <button
+                          type="button"
+                          title="Press and hold to view password"
+                          aria-label="Press and hold to view new password"
+                          onMouseDown={() => setShowNewPassword(true)}
+                          onMouseUp={() => setShowNewPassword(false)}
+                          onMouseLeave={() => setShowNewPassword(false)}
+                          onTouchStart={() => setShowNewPassword(true)}
+                          onTouchEnd={() => setShowNewPassword(false)}
+                          className="icon-btn"
+                        >
+                          {showNewPassword ? (
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#374151" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M2.036 12.322C3.429 7.969 7.199 5 12 5c4.801 0 8.571 2.969 9.964 7.322a1.012 1.012 0 010 .356C20.571 16.031 16.801 19 12 19c-4.801 0-8.571-2.969-9.964-7.322a1.012 1.012 0 010-.356z" />
+                              <circle cx="12" cy="12" r="3" />
+                            </svg>
+                          ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#374151" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M3 3l18 18" />
+                              <path d="M6.06 6.06C7.81 4.88 9.83 4 12 4c4.8 0 8.57 2.97 9.96 7.32a1 1 0 010 .36C20.57 16.03 16.8 19 12 19c-2.17 0-4.19-.88-6-2.06" />
+                              <path d="M10.94 10.94A3 3 0 0114.06 14.06" />
+                            </svg>
+                          )}
+                        </button>
+                      </div>
                     </div>
                     <div>
                       <label className="block mb-1 text-sm font-medium text-gray-700">Confirm Password</label>
-                      <input
-                        type="password"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="form-input"
-                        required
-                      />
+                      <div className="input-with-icon">
+                        <input
+                          type={showConfirmNewPassword ? "text" : "password"}
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          className="form-input"
+                          required
+                        />
+                        <button
+                          type="button"
+                          title="Press and hold to view password"
+                          aria-label="Press and hold to view confirm password"
+                          onMouseDown={() => setShowConfirmNewPassword(true)}
+                          onMouseUp={() => setShowConfirmNewPassword(false)}
+                          onMouseLeave={() => setShowConfirmNewPassword(false)}
+                          onTouchStart={() => setShowConfirmNewPassword(true)}
+                          onTouchEnd={() => setShowConfirmNewPassword(false)}
+                          className="icon-btn"
+                        >
+                          {showConfirmNewPassword ? (
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#374151" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M2.036 12.322C3.429 7.969 7.199 5 12 5c4.801 0 8.571 2.969 9.964 7.322a1.012 1.012 0 010 .356C20.571 16.031 16.801 19 12 19c-4.801 0-8.571-2.969-9.964-7.322a1.012 1.012 0 010-.356z" />
+                              <circle cx="12" cy="12" r="3" />
+                            </svg>
+                          ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#374151" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M3 3l18 18" />
+                              <path d="M6.06 6.06C7.81 4.88 9.83 4 12 4c4.8 0 8.57 2.97 9.96 7.32a1 1 0 010 .36C20.57 16.03 16.8 19 12 19c-2.17 0-4.19-.88-6-2.06" />
+                              <path d="M10.94 10.94A3 3 0 0114.06 14.06" />
+                            </svg>
+                          )}
+                        </button>
+                      </div>
                     </div>
                     <button type="submit" disabled={resetting} className="primary-btn muted">
                       {resetting ? 'Resetting...' : 'Reset Password'}
