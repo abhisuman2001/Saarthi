@@ -4,10 +4,16 @@ exports.deletePatient = async (req, res) => {
   try {
     // Remove patient from all doctors' patients arrays
     await require("../models/Doctor").updateMany({}, { $pull: { patients: patid } });
+    // Find patient to get contactNumber
+    const patient = await require("../models/Patient").findById(patid);
     // Delete patient document
     await require("../models/Patient").findByIdAndDelete(patid);
-    // Optionally, delete user with this patientId
-    await require("../models/User").deleteMany({ patientId: patid });
+    // Delete user(s) with this patientId or contactNumber
+    if (patient && patient.contactNumber) {
+      await require("../models/User").deleteMany({ $or: [ { patientId: patid }, { contactNumber: patient.contactNumber } ] });
+    } else {
+      await require("../models/User").deleteMany({ patientId: patid });
+    }
     res.json({ success: true });
   } catch (err) {
     console.error("Delete patient error:", err);

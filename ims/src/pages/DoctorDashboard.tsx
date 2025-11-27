@@ -2,7 +2,7 @@
 
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState, useMemo } from "react";
-import { getPatientsByDoctor } from "../api/Patientinfo";
+import { getPatientsByDoctor, deletePatient } from "../api/Patientinfo";
 import { getDoctorById, updateDoctor, uploadDoctorAvatar } from "../api/User";
 import { Settings, Plus, Search, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -31,7 +31,6 @@ export default function DoctorDashboard() {
     // Delete patient handler
     const handleDeletePatient = async (patid: string) => {
       if (!window.confirm("Are you sure you want to delete this patient?")) return;
-      const { deletePatient } = await import("../api/Patientinfo");
       const success = await deletePatient(patid);
       if (success) {
         setPatients((prev) => prev.filter((p) => p._id !== patid));

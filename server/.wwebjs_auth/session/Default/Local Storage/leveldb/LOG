@@ -1,6 +1,15 @@
-2025/11/26-11:59:01.808 59fc Reusing MANIFEST C:\Users\Abhishek kumar suman\Downloads\saarthi-v2-main-master\server\.wwebjs_auth\session\Default\Local Storage\leveldb/MANIFEST-000001
-2025/11/26-11:59:01.816 59fc Recovering log #26
-2025/11/26-11:59:01.820 59fc Reusing old log C:\Users\Abhishek kumar suman\Downloads\saarthi-v2-main-master\server\.wwebjs_auth\session\Default\Local Storage\leveldb/000026.log 
-2025/11/26-12:00:07.538 59fc Level-0 table #30: started
-2025/11/26-12:00:07.560 59fc Level-0 table #30: 21751 bytes OK
-2025/11/26-12:00:07.572 59fc Delete type=0 #26
+2025/11/27-18:28:53.214 3dcc Reusing MANIFEST C:\Users\Abhishek kumar suman\Downloads\saarthi-v2-main-master\server\.wwebjs_auth\session\Default\Local Storage\leveldb/MANIFEST-000001
+2025/11/27-18:28:53.215 3dcc Recovering log #29
+2025/11/27-18:28:53.216 3dcc Reusing old log C:\Users\Abhishek kumar suman\Downloads\saarthi-v2-main-master\server\.wwebjs_auth\session\Default\Local Storage\leveldb/000029.log 
+2025/11/27-18:30:58.232 4d8 Level-0 table #33: started
+2025/11/27-18:30:58.598 4d8 Level-0 table #33: 16884 bytes OK
+2025/11/27-18:30:58.719 4d8 Delete type=0 #29
+2025/11/27-18:30:58.753 3e3c Compacting 4@0 + 1@1 files
+2025/11/27-18:30:59.253 3e3c Generated table #34@0: 233 keys, 17844 bytes
+2025/11/27-18:30:59.253 3e3c Compacted 4@0 + 1@1 files => 17844 bytes
+2025/11/27-18:30:59.357 3e3c compacted to: files[ 0 1 1 0 0 0 0 ]
+2025/11/27-18:30:59.373 3e3c Delete type=2 #21
+2025/11/27-18:30:59.373 3e3c Delete type=2 #24
+2025/11/27-18:30:59.373 3e3c Delete type=2 #27
+2025/11/27-18:30:59.373 3e3c Delete type=2 #30
+2025/11/27-18:30:59.373 3e3c Delete type=2 #33
