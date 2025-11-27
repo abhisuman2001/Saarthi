@@ -45,13 +45,12 @@ export default function InvestigationDetails() {
         const patient = await PatientInfo(patid);
         setData(patient?.details ?? null);
 
-        // Attempt to load per-section arrays using naming convention: `${baseKey}_${section}Urls`
+        // Load per-section arrays using naming convention: `${baseKey}_${section}Urls`
         const initial: Record<string, string[]> = {};
         for (const s of SECTIONS) {
-          const prop = `${baseKey}${s === 'follow-up' ? 'FollowUp' : s.charAt(0).toUpperCase() + s.slice(1)}Urls`;
-          // try camel or snake
+          const fieldKey = `${baseKey}_${s === 'follow-up' ? 'followUp' : s}Urls`;
           const details = patient?.details as Record<string, unknown> | undefined;
-          const v = details?.[prop] ?? details?.[`${baseKey}_${s}Urls`] ?? null;
+          const v = details?.[fieldKey] ?? null;
           if (Array.isArray(v)) initial[s] = v.filter(Boolean);
           else initial[s] = [];
         }
@@ -70,9 +69,8 @@ export default function InvestigationDetails() {
     const arr = Array.from(files);
     try {
       for (const f of arr) {
-        // uploadFile(file, patid, key)
-        const key = `${baseKey}_${section}`; // server-side handler may use this
-        const res = await uploadFile(f, patid, key);
+        const fieldKey = `${baseKey}_${section === 'follow-up' ? 'followUp' : section}`;
+        const res = await uploadFile(f, patid, fieldKey);
         if (res && typeof res === 'object' && 'pluralArray' in res && Array.isArray((res as { pluralArray?: unknown[] }).pluralArray)) {
           setSectionImages((prev) => ({ ...prev, [section]: ((res as { pluralArray?: unknown[] }).pluralArray ?? []).filter((x): x is string => typeof x === 'string' && x.length > 0) }));
         } else if (res && typeof res === 'object' && 'url' in res) {
@@ -85,6 +83,34 @@ export default function InvestigationDetails() {
     }
   };
 
+  const handleDelete = async (section: Section, url: string) => {
+    if (!patid || !confirm('Delete this image?')) return;
+    try {
+      const fieldKey = `${baseKey}_${section === 'follow-up' ? 'followUp' : section}`;
+      const backend = import.meta.env.VITE_BACKEND || "http://localhost:5000";
+      const res = await fetch(`${backend}/api/patientinfo/deletePatientFile/${patid}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ field: fieldKey, url }),
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        if (data && 'pluralArray' in data && Array.isArray(data.pluralArray)) {
+          setSectionImages((prev) => ({ ...prev, [section]: (data.pluralArray as string[]).filter((x: string) => typeof x === 'string') }));
+        } else {
+          // Fallback: remove from local state
+          setSectionImages((prev) => ({ ...prev, [section]: (prev[section] || []).filter(u => u !== url) }));
+        }
+      } else {
+        throw new Error('Delete failed');
+      }
+    } catch (err) {
+      console.error('delete', err);
+      alert('Delete failed');
+    }
+  };
+
   if (loading) return <Layout><div className="p-6">Loading...</div></Layout>;
   if (!slug) return <Layout><div className="p-6">Invalid investigation</div></Layout>;
 
@@ -94,7 +120,16 @@ export default function InvestigationDetails() {
     <Layout>
       <div className="max-w-4xl mx-auto p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-semibold">{title}</h2>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => window.history.back()}
+              className="px-3 py-2 bg-gray-100 rounded hover:bg-gray-200 text-gray-700 font-medium"
+              aria-label="Back"
+            >
+              &larr;
+            </button>
+            <h2 className="text-2xl font-semibold">{title}</h2>
+          </div>
           <div className="text-sm text-gray-600">Patient: {typeof data?.name === 'string' ? data.name : '—'}</div>
         </div>
 
@@ -104,19 +139,36 @@ export default function InvestigationDetails() {
               <div className="flex items-center justify-between mb-3">
                 <div className="font-semibold text-gray-800">{sec.toUpperCase()}</div>
                 <label className="inline-flex items-center gap-2 cursor-pointer">
-                  <span className="px-3 py-1 bg-cyan-600 text-white rounded text-sm">Upload</span>
+                  <span className="px-3 py-1 bg-cyan-600 text-white rounded text-sm hover:bg-cyan-700">Upload</span>
                   <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleUpload(sec, e.target.files)} />
                 </label>
               </div>
 
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
                 {(sectionImages[sec] || []).length === 0 ? (
-                  <div className="col-span-full text-gray-500">No images uploaded for this section.</div>
+                  <div className="col-span-full text-gray-500 text-center py-8">No images uploaded for this section.</div>
                 ) : (
                   (sectionImages[sec] || []).map((u, idx) => (
-                    <button key={u + idx} onClick={() => setPreview({ url: u, open: true })} className="w-full h-24 bg-gray-100 rounded overflow-hidden">
-                      <img src={u} alt={`${sec} ${idx+1}`} className="object-cover w-full h-full" onError={(e) => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/200?text=No+Image'; }} />
-                    </button>
+                    <div key={u + idx} className="relative group">
+                      <button 
+                        onClick={() => setPreview({ url: u, open: true })} 
+                        className="w-full h-24 bg-gray-100 rounded overflow-hidden border-2 border-transparent hover:border-cyan-500 transition"
+                      >
+                        <img 
+                          src={u} 
+                          alt={`${sec} ${idx+1}`} 
+                          className="object-cover w-full h-full" 
+                          onError={(e) => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/200?text=No+Image'; }} 
+                        />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(sec, u)}
+                        className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-xs hover:bg-red-600"
+                        title="Delete image"
+                      >
+                        ✕
+                      </button>
+                    </div>
                   ))
                 )}
               </div>

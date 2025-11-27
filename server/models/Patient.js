@@ -58,6 +58,47 @@ const patientSchema = new mongoose.Schema(
     iopaUrls: { type: [String], default: [] },
     anyOtherRecordUrls: { type: [String], default: [] },
 
+    // Section-specific arrays (PRE, MID, POST, FOLLOW-UP)
+    studyModel_preUrls: { type: [String], default: [] },
+    studyModel_midUrls: { type: [String], default: [] },
+    studyModel_postUrls: { type: [String], default: [] },
+    studyModel_followUpUrls: { type: [String], default: [] },
+    
+    photographs_preUrls: { type: [String], default: [] },
+    photographs_midUrls: { type: [String], default: [] },
+    photographs_postUrls: { type: [String], default: [] },
+    photographs_followUpUrls: { type: [String], default: [] },
+    
+    opg_preUrls: { type: [String], default: [] },
+    opg_midUrls: { type: [String], default: [] },
+    opg_postUrls: { type: [String], default: [] },
+    opg_followUpUrls: { type: [String], default: [] },
+    
+    lateralCephalogram_preUrls: { type: [String], default: [] },
+    lateralCephalogram_midUrls: { type: [String], default: [] },
+    lateralCephalogram_postUrls: { type: [String], default: [] },
+    lateralCephalogram_followUpUrls: { type: [String], default: [] },
+    
+    paCephalogram_preUrls: { type: [String], default: [] },
+    paCephalogram_midUrls: { type: [String], default: [] },
+    paCephalogram_postUrls: { type: [String], default: [] },
+    paCephalogram_followUpUrls: { type: [String], default: [] },
+    
+    cbct_preUrls: { type: [String], default: [] },
+    cbct_midUrls: { type: [String], default: [] },
+    cbct_postUrls: { type: [String], default: [] },
+    cbct_followUpUrls: { type: [String], default: [] },
+    
+    iopa_preUrls: { type: [String], default: [] },
+    iopa_midUrls: { type: [String], default: [] },
+    iopa_postUrls: { type: [String], default: [] },
+    iopa_followUpUrls: { type: [String], default: [] },
+    
+    anyOtherRecord_preUrls: { type: [String], default: [] },
+    anyOtherRecord_midUrls: { type: [String], default: [] },
+    anyOtherRecord_postUrls: { type: [String], default: [] },
+    anyOtherRecord_followUpUrls: { type: [String], default: [] },
+
     finalDiagnosis: { type: String, default: null },
 
     treatmentPlan: { type: String, default: null },

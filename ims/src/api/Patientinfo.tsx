@@ -125,7 +125,7 @@ type PatientData = {
 };
 
 //console log
-export const PatientInfo = async (patid: string): Promise<PatientData | null> => {
+export const getPatientDetails = async (patid: string): Promise<PatientData | null> => {
   try {
     const backend = import.meta.env.VITE_BACKEND || "http://localhost:5000";
   
@@ -137,6 +137,9 @@ export const PatientInfo = async (patid: string): Promise<PatientData | null> =>
     return null;
   }
 };
+
+// Keep backward compatibility
+export const PatientInfo = getPatientDetails;
 
 
 
@@ -231,4 +234,24 @@ export const addPatient = async ({
   });
   if (!res.ok) throw new Error("Failed to add patient");
   return res.json();
+};
+
+export const deleteFile = async (
+  patid: string,
+  field: string,
+  url: string
+): Promise<{ success?: boolean; pluralArray?: string[] }> => {
+  try {
+    const backend = import.meta.env.VITE_BACKEND || "http://localhost:5000";
+    const res = await fetch(`${backend}/api/patientinfo/deletePatientFile/${patid}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ field, url }),
+    });
+    if (!res.ok) throw new Error("Failed to delete file");
+    return res.json();
+  } catch (err) {
+    console.error("Delete error:", err);
+    return {};
+  }
 };

@@ -28,6 +28,7 @@ export interface PatientDetails {
   Diagnosis: string | null;
   treatmentPlan: string | null;
   phase: string | null;
+  finalDiagnosis: string | null;
   typeOfAppliance: string | null;
   prescription: string | null;
   nextAppointment: string | null;
@@ -144,9 +145,9 @@ export default function PatientProfile() {
     { label: "Chief Complaint", key: "chiefComplaint" },
     { label: "Past Medical History", key: "pastMedicalHistory" },
     { label: "Past Dental History", key: "pastDentalHistory" },
-    // Removed 'Final Diagnosis' as it's not a key of PatientDetails
     { label: "Treatment Plan", key: "treatmentPlan" },
     { label: "Phase", key: "phase" },
+    { label: "Final Diagnosis", key: "finalDiagnosis" },
     { label: "Type of Appliance", key: "typeOfAppliance" },
     { label: "Prescription", key: "prescription" },
     { label: "Date of start of treatment", key: "startDate", type: "date" },

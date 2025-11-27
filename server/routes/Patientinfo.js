@@ -11,6 +11,7 @@ router.get("/getPatientAdherence/:patid", patientController.getPatientAdherence)
 router.post("/addAdherenceEntry/:patid", patientController.addAdherenceEntry);
 router.get("/getPatientDetails/:patid", patientController.getPatientDetails);
 router.post("/uploadPatientFile/:patid", upload.single("file"), patientController.uploadPatientFile);
+router.delete("/deletePatientFile/:patid", patientController.deletePatientFile);
 router.patch("/updateInfo/:patid", patientController.updatePatientInfo);
 router.get("/getPatientsByDoctor/:docid", patientController.getPatientsByDoctor);
 router.post("/addPatient", patientController.addPatient);

@@ -436,6 +436,31 @@ exports.uploadPatientFile = async (req, res) => {
   }
 };
 
+// Delete a specific image from a section
+exports.deletePatientFile = async (req, res) => {
+  const patid = req.params.patid;
+  const { field, url } = req.body;
+
+  if (!patid || !field || !url) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
+
+  try {
+    const pluralKey = `${field}Urls`;
+    
+    const update = {
+      $pull: { [pluralKey]: url },
+    };
+
+    const patient = await Patient.findByIdAndUpdate(patid, update, { new: true });
+
+    if (!patient) return res.status(404).json({ error: "Patient not found" });
+
+    res.json({ success: true, pluralArray: patient[pluralKey] });
+  } catch (err) {
+    res.status(500).json({ error: "Server error", details: err.message });
+  }
+};
 
 exports.updatePatientInfo = async (req, res) => {
   const { patid } = req.params;

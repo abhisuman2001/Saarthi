@@ -1,3 +1,5 @@
-2025/11/27-18:27:24.495 18fc Reusing MANIFEST C:\Users\Abhishek kumar suman\Downloads\saarthi-v2-main-master\server\.wwebjs_auth\session\Default\Local Storage\leveldb/MANIFEST-000001
-2025/11/27-18:27:24.520 18fc Recovering log #29
-2025/11/27-18:27:24.522 18fc Reusing old log C:\Users\Abhishek kumar suman\Downloads\saarthi-v2-main-master\server\.wwebjs_auth\session\Default\Local Storage\leveldb/000029.log 
+2025/11/27-23:39:01.286 4510 Reusing MANIFEST C:\Users\Abhishek kumar suman\Downloads\saarthi-v2-main-master\server\.wwebjs_auth\session\Default\Local Storage\leveldb/MANIFEST-000001
+2025/11/27-23:39:01.294 4510 Recovering log #32
+2025/11/27-23:39:01.297 4510 Level-0 table #36: started
+2025/11/27-23:39:01.405 4510 Level-0 table #36: 14265 bytes OK
+2025/11/27-23:39:01.437 4510 Delete type=0 #32
